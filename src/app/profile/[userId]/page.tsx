@@ -4,6 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { getUserProfile } from '@/lib/firebase/auth';
@@ -15,36 +16,32 @@ import { useAuth } from '@/hooks/useAuth';
 export default function UserProfilePage() {
   const params = useParams();
   const userIdParam = params.userId;
-  // Convert to string if it's an array, or use as is if it's already a string
   const userId = Array.isArray(userIdParam) ? userIdParam[0] : userIdParam;
-  
   const { user: currentUser, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
   
   const [user, setUser] = useState<User | null>(null);
   const [debates, setDebates] = useState<Debate[]>([]);
+  const [filteredDebates, setFilteredDebates] = useState<Debate[]>([]); // For search functionality
+  const [searchTerm, setSearchTerm] = useState(''); // For search input
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Check if viewing own profile
   const isCurrentUser = currentUser?.id === userId;
 
   // Load user data
   useEffect(() => {
-    // If auth is still loading, wait
     if (authLoading) {
       console.log("Auth still loading, waiting...");
       return;
     }
     
-    // If user is not authenticated, redirect to login
     if (!isAuthenticated) {
       console.log("User not authenticated, redirecting to login");
       router.push('/auth/login');
       return;
     }
     
-    // Handle the case when URL is /profile/me or similar shortcut
     if (userId === 'me' && currentUser) {
       console.log("Redirecting 'me' to actual user ID:", currentUser.id);
       router.push(`/profile/${currentUser.id}`);
@@ -57,14 +54,12 @@ export default function UserProfilePage() {
       setError(null);
       
       try {
-        // For current user, we can use the data we already have from context
         if (isCurrentUser && currentUser) {
           console.log("Using current user data from context");
           setUser(currentUser);
         } else if (userId) {
           console.log("Fetching user profile from database");
           const profile = await getUserProfile(userId);
-          
           if (!profile) {
             console.error("No profile found for userId:", userId);
             setError("User profile not found");
@@ -77,11 +72,11 @@ export default function UserProfilePage() {
           setError("User ID is missing");
         }
         
-        // Load debates if we have a valid userId
         if (userId) {
           console.log("Loading user debates");
           const userDebates = await getUserDebates(userId);
           setDebates(userDebates);
+          setFilteredDebates(userDebates); // Initialize filtered debates
         }
       } catch (e) {
         console.error("Error loading profile:", e);
@@ -94,7 +89,18 @@ export default function UserProfilePage() {
     loadUserAndDebates();
   }, [userId, isCurrentUser, currentUser, authLoading, isAuthenticated, router]);
 
-  // Show loading state
+  // Filter debates based on search term
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredDebates(debates);
+    } else {
+      const filtered = debates.filter((debate) =>
+        debate.topic.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredDebates(filtered);
+    }
+  }, [searchTerm, debates]);
+
   if (authLoading || loading) {
     return (
       <div className="flex justify-center py-12">
@@ -103,14 +109,11 @@ export default function UserProfilePage() {
     );
   }
 
-  // Direct use of current user if it's the user's own profile
-  // This ensures we always show something even if profile loading fails
   if (isCurrentUser && currentUser && !user) {
     console.log("Fallback to current user data");
     setUser(currentUser);
   }
 
-  // Show error state - but only if we don't have user data
   if (error && !user) {
     return (
       <div className="text-center py-12">
@@ -120,7 +123,6 @@ export default function UserProfilePage() {
           <Button onClick={() => window.location.reload()}>
             Try Again
           </Button>
-          
           {isAuthenticated && (
             <div>
               <p className="text-sm text-gray-500 mb-2">Debug Info:</p>
@@ -134,7 +136,6 @@ export default function UserProfilePage() {
     );
   }
 
-  // Show user not found state - should be rare with the fallback above
   if (!user) {
     return (
       <div className="text-center py-12">
@@ -154,16 +155,55 @@ export default function UserProfilePage() {
   const strokeDashoffset = circumference - (winPercentage / 100) * circumference;
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="flex flex-col md:flex-row gap-6 mb-8">
-        {/* Section 1: Debate Statistics with Circle Chart */}
-        <div className="w-full md:w-1/2 bg-white p-6 rounded-lg shadow">
+    <div className="max-w-7xl mx-auto p-6"> {/* Increased from max-w-6xl to max-w-7xl */}
+      {/* Top Section: Debater Image, Statistics, and Profile */}
+      <div className="flex flex-col lg:flex-row gap-6 mb-8">
+        {/* Left Section: Debater Image and Buttons */}
+        <div className="lg:w-1/4 flex flex-col items-center">
+          <div className="mb-6">
+            <Image
+              src="/debater.jpg"
+              alt="Debater"
+              width={200}
+              height={200}
+              className="rounded-lg"
+            />
+          </div>
+          <div className="flex flex-col gap-4 w-full">
+            <Button
+              variant="gradient"
+              size="lg"
+              className="w-full"
+              onClick={() => router.push("/debates/new")}
+              disabled={!isCurrentUser}
+            >
+              Debate!
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full"
+              onClick={() => router.push("/debates")}
+            >
+              Dashboard
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full"
+              onClick={() => router.push("/leaderboard")}
+            >
+              Leaderboard
+            </Button>
+          </div>
+        </div>
+
+        {/* Middle Section: Debate Statistics */}
+        <div className="lg:w-2/5 bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-bold mb-4">Debate Statistics</h2>
-          <div className="flex items-center ">
-          {/* Circle chart */}
+          <div className="flex items-center">
             <div className="relative">
               <svg width="150" height="150" viewBox="0 0 150 150">
-                {/* Background circle */}
                 <circle 
                   cx="75" 
                   cy="75" 
@@ -172,8 +212,6 @@ export default function UserProfilePage() {
                   strokeWidth="12" 
                   fill="none" 
                 />
-                
-                {/* Progress circle */}
                 <circle 
                   cx="75" 
                   cy="75" 
@@ -185,8 +223,6 @@ export default function UserProfilePage() {
                   strokeDashoffset={strokeDashoffset}
                   transform="rotate(-90 75 75)"
                 />
-
-              {/* Percentage text */}
                 <text 
                   x="75" 
                   y="70" 
@@ -204,12 +240,11 @@ export default function UserProfilePage() {
                   dominantBaseline="middle" 
                   fontSize="16" 
                   fontWeight="bold"
-                  >
+                >
                   Total
                 </text>
               </svg>
             </div>
-            {/* Legend */}
             <div className="ml-6">
               <div className="flex items-center mb-2">
                 <div className="w-4 h-4 rounded-full bg-black mr-2"></div>
@@ -220,30 +255,29 @@ export default function UserProfilePage() {
                 <p>Losses: {user.stats?.losses || 0}</p>
               </div>
               <div className="mt-2 text-sm text-gray-500">
-                  Win Rate: {user.stats && user.stats.totalDebates > 0 
-                  ? winPercentage: 0}%
+                Win Rate: {user.stats && user.stats.totalDebates > 0 
+                  ? winPercentage : 0}%
               </div>
+            </div>
           </div>
         </div>
-      </div>
-      {/* Section 2: User Profile */}
-    <div className="w-full md:w-1/2 bg-white p-6 rounded-lg shadow">
-    <div className="flex flex-col md:flex-row justify-between items-center mb-4">
-        <h1 className="text-xl font-bold mb-4">{user.username}</h1>
-        {isCurrentUser && (
+
+        {/* Right Section: User Profile */}
+        <div className="lg:w-2/5 bg-white p-6 rounded-lg shadow">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-4">
+            <h1 className="text-xl font-bold mb-4">{user.username}</h1>
+            {isCurrentUser && (
               <Link href="/profile/edit">
                 <Button variant="outline" className="mt-2 md:mt-0">Edit Profile</Button>
               </Link>
             )}
-      </div>
-        <div className="flex flex-wrap gap-2 mb-4">
-            {/* Display user metadata like gender and location if available */}
+          </div>
+          <div className="flex flex-wrap gap-2 mb-4">
             {user.gender && (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                 {user.gender}
               </span>
             )}
-            
             {user.location && (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -272,50 +306,101 @@ export default function UserProfilePage() {
             ))}
           </div>
         </div>
-    </div>
+      </div>
 
-
-    {/* Section 3: Past Debates Record */}
-    <div className="w-full bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-bold mb-4">Past Debates</h2>
-        {isCurrentUser && (
-            <Link href="/debates/new">
-              <Button variant="gradient" size="sm">
-                Create New Debate
-              </Button>
-            </Link>
-          )}
+      {/* Past Debates Section */}
+      <div className="w-full bg-white p-6 rounded-lg shadow">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Past Debate Records</h2>
+          <div className="relative mt-4 md:mt-0">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg
+                className="h-5 w-5 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="form-input pl-10 py-2 w-full md:w-64 rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+              placeholder="Search past debates..."
+            />
+          </div>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-gray-100">
                 <th className="p-3 text-left">Topic</th>
                 <th className="p-3 text-left">Opponent</th>
-                <th className="p-3 text-left">Result</th>
+                <th className="p-3 text-left">Score</th>
                 <th className="p-3 text-left">Date</th>
               </tr>
             </thead>
             <tbody>
-              
+              {filteredDebates.length > 0 ? (
+                filteredDebates.map((debate) => {
+                  const isWinner = debate.winner === userId;
+                  const score = isWinner ? 100 : 0; // Simplified scoring for demonstration; adjust as needed
+                  const opponentId = debate.creatorId === userId ? debate.opponentId : debate.creatorId;
+                  const debateDate = debate.createdAt ? new Date(debate.createdAt).toLocaleDateString() : 'N/A';
+
+                  return (
+                    <tr
+                      key={debate.id}
+                      className={isWinner ? 'bg-green-50' : 'bg-red-50'}
+                    >
+                      <td className="p-3">
+                        <div>
+                          <Link href={`/debates/${debate.id}`} className="text-blue-600 hover:underline">
+                            {debate.topic}
+                          </Link>
+                          <p className="text-xs text-gray-500">
+                            {debate.rounds} rounds • {debate.status === 'completed' ? 'Completed' : 'In Progress'}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        {opponentId ? (
+                          <Link href={`/profile/${opponentId}`} className="text-blue-600 hover:underline">
+                            Opponent
+                          </Link>
+                        ) : (
+                          'No Opponent'
+                        )}
+                      </td>
+                      <td className="p-3">{score}%</td>
+                      <td className="p-3">{debateDate}</td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={4} className="p-3 text-center text-gray-500">
+                    No past debates found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
-      
-      {/* Recent Debates Section */}
-      <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
+
+      {/* Recent Debates Section (with "Create New Debate" button removed) */}
+      <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200 mt-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-gray-900">Recent Debates</h2>
-          
-          {isCurrentUser && (
-            <Link href="/debates/new">
-              <Button variant="gradient" size="sm">
-                Create New Debate
-              </Button>
-            </Link>
-          )}
         </div>
-        
         {debates.length > 0 ? (
           <div className="space-y-4">
             {debates.slice(0, 5).map((debate) => (
