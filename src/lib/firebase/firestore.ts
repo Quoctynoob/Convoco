@@ -368,6 +368,11 @@ export const forfeitDebate = async (debateId: string, userId: string) => {
     const winnerId =
       debate.creatorId === userId ? debate.opponentId : debate.creatorId;
 
+    // Make sure winnerId exists (as a type safety check)
+    if (!winnerId) {
+      throw new Error("Could not determine winner ID");
+    }
+
     // Update debate status and winner
     await updateDoc(debateRef, {
       status: DebateStatus.COMPLETED,
@@ -377,7 +382,7 @@ export const forfeitDebate = async (debateId: string, userId: string) => {
       updatedAt: Date.now(),
     });
 
-    // Update user stats
+    // Update user stats - only update if we have valid user IDs
     await updateUserStats(userId, false); // The user who forfeited loses
     await updateUserStats(winnerId, true); // The other user wins
 
