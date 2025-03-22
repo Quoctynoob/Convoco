@@ -96,7 +96,7 @@ export default function EditProfilePage() {
   if (authLoading) {
     return (
       <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
       </div>
     );
   }
@@ -191,7 +191,7 @@ export default function EditProfilePage() {
                 Favorite Debate Topics
               </label>
               <p className="text-xs text-gray-500 mt-1">
-                Add topics you&aops;re interested in debating
+                Add topics you are interested in debating
               </p>
               <div className="mt-2 flex">
                 <input
@@ -204,7 +204,7 @@ export default function EditProfilePage() {
                 <button
                   type="button"
                   onClick={handleAddTopic}
-                  className="bg-purple-600 text-white px-4 py-2 rounded-r-md hover:bg-purple-700 disabled:opacity-50"
+                  className="bg-skyblue text-black px-4 py-2 rounded-r-md hover:bg-indigo-400"
                   disabled={!newTopic.trim()}
                 >
                   Add
@@ -215,13 +215,13 @@ export default function EditProfilePage() {
                 {debateTopics.map((topic, index) => (
                   <div
                     key={index}
-                    className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm flex items-center"
+                    className="border-gray-400 border-2 text-black px-3 py-1 rounded-full text-sm flex items-center"
                   >
                     {topic}
                     <button
                       type="button"
                       onClick={() => handleRemoveTopic(topic)}
-                      className="ml-2 text-purple-600 hover:text-purple-800"
+                      className="ml-2 text-gray-900 hover:text-black"
                     >
                       &times;
                     </button>
