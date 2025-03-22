@@ -47,7 +47,7 @@ export const useGemini = () => {
 
   const determineWinner = async (
     debate: Debate,
-    arguments: Argument[],
+    debateArguments: Argument[], // Changed from 'arguments' to 'debateArguments'
     analyses: AIAnalysis[],
     creator: User,
     opponent: User
@@ -58,7 +58,7 @@ export const useGemini = () => {
     try {
       const result = await determineDebateWinner(
         debate,
-        arguments,
+        debateArguments, // Make sure to use the renamed parameter here
         analyses,
         creator,
         opponent
