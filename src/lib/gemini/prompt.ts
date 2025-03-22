@@ -87,10 +87,16 @@ export const generateWinnerPrompt = (
     .map((analysis) => analysis.score);
 
   const creatorAvgScore =
-    creatorScores.reduce((sum, score) => sum + score, 0) / creatorScores.length;
+    creatorScores.length > 0
+      ? creatorScores.reduce((sum, score) => sum + score, 0) /
+        creatorScores.length
+      : 0;
+
   const opponentAvgScore =
-    opponentScores.reduce((sum, score) => sum + score, 0) /
-    opponentScores.length;
+    opponentScores.length > 0
+      ? opponentScores.reduce((sum, score) => sum + score, 0) /
+        opponentScores.length
+      : 0;
 
   return `
 You are an AI judge for a structured debate on the topic: "${debate.topic}".
