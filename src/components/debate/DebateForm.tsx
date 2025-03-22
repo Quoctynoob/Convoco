@@ -16,13 +16,11 @@ import { useRouter } from "next/navigation";
 
 export const DebateForm: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
-  const { createNewDebate, loading, error, suggestedTopics } =
-    useDebateCreation();
+  const { createNewDebate, loading, error } = useDebateCreation();
   const router = useRouter();
 
   const [topic, setTopic] = useState("");
-  const [description, setDescription] = useState("");
-  const [rounds, setRounds] = useState(3);
+  const [side, setSide] = useState<"affirmative" | "negative">("affirmative");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,15 +30,17 @@ export const DebateForm: React.FC = () => {
       return;
     }
 
-    if (!topic.trim() || !description.trim() || rounds < 1) {
+    if (!topic.trim()) {
       return;
     }
 
-    await createNewDebate(topic.trim(), description.trim(), rounds, user.id);
-  };
+    // We'll use fixed values for description and rounds
+    const description = `This is a debate on the topic: ${topic}. The creator has chosen to take the ${side} position.`;
+    const rounds = 2; // Fixed at 2 rounds based on your debate format
 
-  const handleSelectTopic = (selectedTopic: string) => {
-    setTopic(selectedTopic);
+    // We'll pass the selected side as part of the debate creation
+    // You'll need to modify your createNewDebate function to handle this
+    await createNewDebate(topic.trim(), description, rounds, user.id, side);
   };
 
   return (
@@ -68,68 +68,66 @@ export const DebateForm: React.FC = () => {
             />
           </div>
 
-          {suggestedTopics.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Or choose a suggested topic:
-              </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {suggestedTopics.map((suggestion, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => handleSelectTopic(suggestion)}
-                    className="text-left p-2 border border-gray-200 rounded-md hover:bg-gray-50 text-sm"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Choose Your Position
+            </label>
+            <div className="grid grid-cols-2 gap-4">
+              <div
+                className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                  side === "affirmative"
+                    ? "border-purple-500 bg-purple-50"
+                    : "border-gray-200 hover:border-purple-200 hover:bg-purple-50/30"
+                }`}
+                onClick={() => setSide("affirmative")}
+              >
+                <div className="flex items-center mb-2">
+                  <div
+                    className={`w-5 h-5 rounded-full mr-2 ${
+                      side === "affirmative" ? "bg-purple-500" : "bg-gray-200"
+                    }`}
+                  ></div>
+                  <h3 className="text-lg font-medium">Affirmative (Pro)</h3>
+                </div>
+                <p className="text-sm text-gray-600">
+                  I will argue in favor of the topic
+                </p>
+              </div>
+
+              <div
+                className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                  side === "negative"
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-200 hover:border-red-200 hover:bg-red-50/30"
+                }`}
+                onClick={() => setSide("negative")}
+              >
+                <div className="flex items-center mb-2">
+                  <div
+                    className={`w-5 h-5 rounded-full mr-2 ${
+                      side === "negative" ? "bg-red-500" : "bg-gray-200"
+                    }`}
+                  ></div>
+                  <h3 className="text-lg font-medium">Negative (Con)</h3>
+                </div>
+                <p className="text-sm text-gray-600">
+                  I will argue against the topic
+                </p>
               </div>
             </div>
-          )}
-
-          <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Description
-            </label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
-              placeholder="Provide context and scope for the debate..."
-              required
-            />
           </div>
 
-          <div>
-            <label
-              htmlFor="rounds"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Number of Rounds
-            </label>
-            <div className="mt-1 flex items-center gap-4">
-              <input
-                type="range"
-                id="rounds"
-                min="1"
-                max="5"
-                value={rounds}
-                onChange={(e) => setRounds(parseInt(e.target.value))}
-                className="w-full"
-              />
-              <span className="text-lg font-medium w-8 text-center">
-                {rounds}
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-gray-500">
-              Each round consists of one argument from each participant
+          <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+            <h3 className="font-medium text-blue-800 mb-2">Format</h3>
+            <p className="text-sm text-blue-700">
+              This debate will follow the standard 2-round format:
             </p>
+            <ul className="text-sm text-blue-700 list-disc list-inside mt-2 space-y-1">
+              <li>Opening statements from both sides (4 minutes each)</li>
+              <li>First round: Pro's argument with rebuttals (2 minutes each)</li>
+              <li>Second round: Con's argument with rebuttals (2 minutes each)</li>
+              <li>AI analysis will determine the winner based on argument strength, rebuttals, clarity, and evidence</li>
+            </ul>
           </div>
 
           {error && (
@@ -140,7 +138,7 @@ export const DebateForm: React.FC = () => {
 
           <Button
             type="submit"
-            disabled={!topic.trim() || !description.trim() || loading}
+            disabled={!topic.trim() || loading}
             className="w-full"
           >
             {loading ? "Creating Debate..." : "Create Debate"}

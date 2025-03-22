@@ -24,6 +24,11 @@ export const createDebate = async (
   debate: Omit<Debate, "id" | "createdAt" | "updatedAt">
 ) => {
   try {
+    // Make sure the debate object has the creatorSide field
+    if (!debate.creatorSide) {
+      debate.creatorSide = "affirmative"; // Default to affirmative if not specified
+    }
+    
     const debateRef = await addDoc(collection(db, "debates"), {
       ...debate,
       createdAt: Date.now(),
@@ -56,7 +61,7 @@ export const getDebateById = async (
 
 export const getOpenDebates = async (
   lastDebate?: DocumentSnapshot,
-  pageSize: number = 10
+  pageSize: number = 20
 ) => {
   try {
     let q = query(
@@ -77,7 +82,8 @@ export const getOpenDebates = async (
     );
   } catch (error) {
     console.error("Error getting open debates:", error);
-    throw error;
+    // Return an empty array instead of throwing
+    return [];
   }
 };
 
@@ -212,7 +218,22 @@ export const getArgumentAnalysis = async (
 
     if (!querySnapshot.empty) {
       const doc = querySnapshot.docs[0];
-      return { id: doc.id, ...doc.data() } as AIAnalysis;
+      const data = doc.data();
+      
+      // Create a proper AIAnalysis object with all required fields
+      const analysis: AIAnalysis = {
+        id: doc.id,
+        argumentId: data.argumentId || '',
+        userId: data.userId || '',
+        round: data.round || 0,
+        content: data.content || '',
+        factCheck: data.factCheck || [],
+        score: data.score || 0,
+        suggestedCounterpoints: data.suggestedCounterpoints || [],
+        createdAt: data.createdAt || Date.now()
+      };
+      
+      return analysis;
     }
 
     return null;
@@ -243,6 +264,79 @@ export const updateUserStats = async (userId: string, won: boolean) => {
     }
   } catch (error) {
     console.error("Error updating user stats:", error);
+    throw error;
+  }
+};
+
+export const leaveDebate = async (debateId: string, userId: string) => {
+  try {
+    const debateRef = doc(db, "debates", debateId);
+    const debateDoc = await getDoc(debateRef);
+    
+    if (!debateDoc.exists()) {
+      throw new Error("Debate not found");
+    }
+    
+    const debate = { id: debateDoc.id, ...debateDoc.data() } as Debate;
+    
+    // Check if the user is the creator or opponent
+    if (debate.creatorId === userId) {
+      // If the creator leaves and there's no opponent, mark as abandoned
+      if (!debate.opponentId) {
+        await updateDoc(debateRef, {
+          status: DebateStatus.ABANDONED,
+          updatedAt: Date.now(),
+        });
+      } 
+      // If there is an opponent, transfer ownership if debate is still pending
+      else if (debate.status === DebateStatus.PENDING) {
+        await updateDoc(debateRef, {
+          creatorId: debate.opponentId,
+          opponentId: null,
+          updatedAt: Date.now(),
+        });
+      }
+      // If debate is active or completed, it stays as is - historical record
+    } 
+    // If opponent leaves
+    else if (debate.opponentId === userId) {
+      // Remove opponent from the debate
+      await updateDoc(debateRef, {
+        opponentId: null,
+        status: DebateStatus.PENDING, // Reset to pending to allow new opponents
+        updatedAt: Date.now(),
+      });
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error leaving debate:", error);
+    throw error;
+  }
+};
+
+// Function to check if a debate room should be deleted
+// This would be called by a Cloud Function or scheduled task
+export const cleanupAbandonedDebates = async () => {
+  try {
+    // Get debates that have been abandoned for more than 24 hours
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    
+    const q = query(
+      collection(db, "debates"),
+      where("status", "==", DebateStatus.ABANDONED),
+      where("updatedAt", "<", oneDayAgo)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    // Delete each abandoned debate
+    const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(deletePromises);
+    
+    return querySnapshot.docs.length; // Return number of deleted debates
+  } catch (error) {
+    console.error("Error cleaning up abandoned debates:", error);
     throw error;
   }
 };

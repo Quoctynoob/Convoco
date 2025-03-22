@@ -25,26 +25,14 @@ import { db } from "@/lib/firebase/firebase";
 export const useDebateCreation = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [suggestedTopics, setSuggestedTopics] = useState<string[]>([]);
   const router = useRouter();
-
-  useEffect(() => {
-    const loadSuggestedTopics = async () => {
-      try {
-        const topics = await suggestDebateTopics();
-        setSuggestedTopics(topics);
-      } catch (e) {
-        console.error("Error loading suggested topics:", e);
-      }
-    };
-    loadSuggestedTopics();
-  }, []);
 
   const createNewDebate = async (
     topic: string,
     description: string,
     rounds: number,
-    creatorId: string
+    creatorId: string,
+    side: "affirmative" | "negative" = "affirmative"
   ) => {
     setLoading(true);
     setError(null);
@@ -53,6 +41,7 @@ export const useDebateCreation = () => {
         topic,
         description,
         creatorId,
+        creatorSide: side,  // Add this field
         status: DebateStatus.PENDING,
         rounds,
         currentRound: 0,
@@ -76,7 +65,6 @@ export const useDebateCreation = () => {
     createNewDebate,
     loading,
     error,
-    suggestedTopics,
   };
 };
 

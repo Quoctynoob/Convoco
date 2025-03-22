@@ -3,9 +3,11 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  photoURL?: string;
-  bio?: string;
-  debateTopics?: string[]; // Topics the user wants to debate
+  photoURL: string;
+  bio: string;
+  gender?: string;
+  location?: string;
+  debateTopics: string[];
   stats: {
     wins: number;
     losses: number;

@@ -91,12 +91,47 @@ export const resetPassword = async (email: string) => {
 
 export const getUserProfile = async (userId: string): Promise<User | null> => {
   try {
+    console.log("Getting user profile for userId:", userId);
+    
+    if (!userId) {
+      console.error("getUserProfile called with empty userId");
+      return null;
+    }
+    
     const userDoc = await getDoc(doc(db, "users", userId));
 
     if (userDoc.exists()) {
-      return { id: userDoc.id, ...userDoc.data() } as User;
+      const userData = userDoc.data();
+      console.log("User data found in Firestore");
+      
+      // Ensure stats exists to prevent errors
+      if (!userData.stats) {
+        userData.stats = {
+          wins: 0,
+          losses: 0,
+          totalDebates: 0
+        };
+      }
+      
+      // Make sure all required fields have defaults
+      const userWithDefaults = {
+        id: userDoc.id,
+        username: userData.username || 'User',
+        email: userData.email || '',
+        photoURL: userData.photoURL || '',
+        bio: userData.bio || '',
+        gender: userData.gender || '',
+        location: userData.location || '',
+        debateTopics: userData.debateTopics || [],
+        stats: userData.stats,
+        createdAt: userData.createdAt || Date.now(),
+        updatedAt: userData.updatedAt || Date.now()
+      };
+      
+      return userWithDefaults as User;
     }
 
+    console.error("No user document found for userId:", userId);
     return null;
   } catch (error) {
     console.error("Error getting user profile:", error);

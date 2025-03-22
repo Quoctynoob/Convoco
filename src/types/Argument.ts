@@ -1,4 +1,4 @@
-// src/types/Argument.ts
+// src/types/Argument.ts - Updated AIAnalysis interface
 export interface Argument {
   id: string;
   debateId: string;
@@ -10,6 +10,7 @@ export interface Argument {
 }
 
 export interface AIAnalysis {
+  id: string; // Add this field - unique identifier for the analysis document
   argumentId: string;
   userId: string;
   round: number;

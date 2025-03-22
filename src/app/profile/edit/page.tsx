@@ -20,6 +20,8 @@ export default function EditProfilePage() {
   const router = useRouter();
 
   const [username, setUsername] = useState("");
+  const [gender, setGender] = useState("");
+  const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
   const [debateTopics, setDebateTopics] = useState<string[]>([]);
   const [newTopic, setNewTopic] = useState("");
@@ -38,6 +40,8 @@ export default function EditProfilePage() {
   useEffect(() => {
     if (user) {
       setUsername(user.username || "");
+      setGender(user.gender || "");
+      setLocation(user.location || "");
       setBio(user.bio || "");
       setDebateTopics(user.debateTopics || []);
     }
@@ -68,6 +72,8 @@ export default function EditProfilePage() {
 
       await updateDoc(userRef, {
         username: username.trim(),
+        gender: gender.trim(),
+        location: location.trim(),
         bio: bio.trim(),
         debateTopics,
         updatedAt: Date.now(),
@@ -96,7 +102,7 @@ export default function EditProfilePage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto py-8">
+    <div className="max-w-2xl mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold text-center mb-8">Edit Your Profile</h1>
 
       <Card>
@@ -110,7 +116,7 @@ export default function EditProfilePage() {
                 htmlFor="username"
                 className="block text-sm font-medium text-gray-700"
               >
-                Username
+                Name
               </label>
               <input
                 type="text"
@@ -121,6 +127,46 @@ export default function EditProfilePage() {
                 placeholder="Your display name"
                 required
               />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="gender"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Gender
+                </label>
+                <select
+                  id="gender"
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+                >
+                  <option value="">Prefer not to say</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Non-binary">Non-binary</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="location"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Location
+                </label>
+                <input
+                  type="text"
+                  id="location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+                  placeholder="City, Country"
+                />
+              </div>
             </div>
 
             <div>
@@ -142,20 +188,24 @@ export default function EditProfilePage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Debate Topics of Interest
+                Favorite Debate Topics
               </label>
+              <p className="text-xs text-gray-500 mt-1">
+                Add topics you're interested in debating
+              </p>
               <div className="mt-2 flex">
                 <input
                   type="text"
                   value={newTopic}
                   onChange={(e) => setNewTopic(e.target.value)}
                   className="flex-1 p-2 border border-gray-300 rounded-l-md shadow-sm"
-                  placeholder="Add a topic you're interested in debating"
+                  placeholder="Add a topic (e.g., Climate Change, AI Ethics)"
                 />
                 <button
                   type="button"
                   onClick={handleAddTopic}
-                  className="bg-purple-600 text-white px-4 py-2 rounded-r-md hover:bg-purple-700"
+                  className="bg-purple-600 text-white px-4 py-2 rounded-r-md hover:bg-purple-700 disabled:opacity-50"
+                  disabled={!newTopic.trim()}
                 >
                   Add
                 </button>
@@ -211,4 +261,4 @@ export default function EditProfilePage() {
       </Card>
     </div>
   );
-} // Added closing brace for the component function
+}

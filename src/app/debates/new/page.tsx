@@ -18,13 +18,12 @@ export default function CreateDebatePage() {
   }, [isAuthenticated, router]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl mx-auto px-4">
       <h1 className="text-3xl font-bold text-center text-gray-900">
         Create a New Debate
       </h1>
       <p className="text-center text-gray-500 max-w-2xl mx-auto">
-        Define your debate topic, provide context, and set the number of rounds.
-        Other users will be able to join your debate.
+        Set your debate topic and choose which side you'll take. Another user with opposing views will join your debate.
       </p>
 
       <DebateForm />

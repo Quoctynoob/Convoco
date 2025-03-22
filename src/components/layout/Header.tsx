@@ -1,6 +1,6 @@
 // src/components/layout/Header.tsx
 "use client";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,6 +11,27 @@ export const Header: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    // Add event listener
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      // Remove event listener on cleanup
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const toggleDropdown = () => {
+    setDropdownOpen(!dropdownOpen);
+  };
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-40">
@@ -37,16 +58,6 @@ export const Header: React.FC = () => {
                 }`}
               >
                 Home
-              </Link>
-              <Link
-                href="/debates"
-                className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  pathname === "/debates" || pathname.startsWith("/debates/")
-                    ? "text-purple-700 bg-purple-50"
-                    : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
-                }`}
-              >
-                Debates
               </Link>
               {isAuthenticated && (
                 <Link
@@ -75,8 +86,11 @@ export const Header: React.FC = () => {
                     New Debate
                   </Button>
                 </Link>
-                <div className="relative group">
-                  <button className="flex items-center space-x-2 focus:outline-none">
+                <div className="relative" ref={dropdownRef}>
+                  <button 
+                    className="flex items-center space-x-2 focus:outline-none" 
+                    onClick={toggleDropdown}
+                  >
                     {user?.photoURL ? (
                       <img
                         src={user.photoURL}
@@ -92,26 +106,33 @@ export const Header: React.FC = () => {
                       {user?.username}
                     </span>
                   </button>
-                  <div className="absolute right-0 mt-2 w-48 py-2 bg-white rounded-md shadow-lg hidden group-hover:block z-10 border border-gray-100">
-                    <Link
-                      href={`/profile/${user?.id}`}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700"
-                    >
-                      Profile
-                    </Link>
-                    <Link
-                      href="/profile/edit"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700"
-                    >
-                      Settings
-                    </Link>
-                    <button
-                      onClick={() => logout()}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700"
-                    >
-                      Sign out
-                    </button>
-                  </div>
+                  {dropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 py-2 bg-white rounded-md shadow-lg z-10 border border-gray-100">
+                      <Link
+                        href={`/profile/${user?.id}`}
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        Profile
+                      </Link>
+                      <Link
+                        href="/profile/edit"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        Settings
+                      </Link>
+                      <button
+                        onClick={() => {
+                          logout();
+                          setDropdownOpen(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700"
+                      >
+                        Sign out
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -168,17 +189,6 @@ export const Header: React.FC = () => {
               onClick={() => setMobileMenuOpen(false)}
             >
               Home
-            </Link>
-            <Link
-              href="/debates"
-              className={`block px-3 py-2 rounded-md text-base font-medium ${
-                pathname === "/debates" || pathname.startsWith("/debates/")
-                  ? "text-purple-700 bg-purple-50"
-                  : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
-              }`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Debates
             </Link>
             {isAuthenticated && (
               <Link

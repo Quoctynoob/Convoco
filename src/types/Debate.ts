@@ -13,6 +13,7 @@ export interface Debate {
   topic: string;
   description: string;
   creatorId: string;
+  creatorSide: "affirmative" | "negative"; // New field to track which side the creator chose
   opponentId?: string;
   status: DebateStatus;
   currentTurn?: string; // User ID of whose turn it is
