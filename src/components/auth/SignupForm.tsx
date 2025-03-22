@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/Card";
 import { useAuth } from "@/hooks/useAuth";
 import { GoogleButton } from "./GoogleButton";
-
 export const SignupForm: React.FC = () => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -21,7 +20,6 @@ export const SignupForm: React.FC = () => {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const { signup, loginWithGoogle, loading, error } = useAuth();
-
   const validatePasswords = () => {
     if (password !== confirmPassword) {
       setPasswordError("Passwords do not match");
@@ -34,7 +32,6 @@ export const SignupForm: React.FC = () => {
     setPasswordError(null);
     return true;
   };
-
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validatePasswords() || !acceptTerms) {
@@ -44,11 +41,9 @@ export const SignupForm: React.FC = () => {
       await signup(email.trim(), password.trim(), username.trim());
     }
   };
-
   const handleGoogleSignup = async () => {
     await loginWithGoogle();
   };
-
   return (
     <Card className="max-w-md mx-auto shadow-md border-gray-200">
       <CardHeader className="text-center bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-gray-100 rounded-t-lg">
@@ -56,7 +51,7 @@ export const SignupForm: React.FC = () => {
           Create Your Account
         </CardTitle>
         <p className="text-gray-600 mt-2">
-          Join DebateAI and start improving your debate skills
+          Join Convoco and start improving your debate skills
         </p>
       </CardHeader>
       <CardContent className="pt-6">
@@ -193,7 +188,6 @@ export const SignupForm: React.FC = () => {
             Create Account
           </Button>
         </form>
-
         <div className="relative py-3 mt-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-200"></div>
@@ -202,7 +196,6 @@ export const SignupForm: React.FC = () => {
             <span className="px-2 bg-white text-gray-500">Or sign up with</span>
           </div>
         </div>
-
         <GoogleButton
           onClick={handleGoogleSignup}
           isLoading={loading}

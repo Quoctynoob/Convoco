@@ -12,24 +12,20 @@ import {
 } from "@/components/ui/Card";
 import { useAuth } from "@/hooks/useAuth";
 import { GoogleButton } from "./GoogleButton";
-
 export const LoginForm: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { login, loginWithGoogle, forgotPassword, loading, error } = useAuth();
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (email.trim() && password.trim()) {
       await login(email.trim(), password.trim());
     }
   };
-
   const handleGoogleLogin = async () => {
     await loginWithGoogle();
   };
-
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (email.trim()) {
@@ -40,7 +36,6 @@ export const LoginForm: React.FC = () => {
       }
     }
   };
-
   return (
     <Card className="max-w-md mx-auto shadow-md border-gray-200">
       <CardHeader className="text-center bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-gray-100 rounded-t-lg">
@@ -48,7 +43,7 @@ export const LoginForm: React.FC = () => {
           {showForgotPassword ? "Reset Password" : "Welcome Back"}
         </CardTitle>
         {!showForgotPassword && (
-          <p className="text-gray-600 mt-2">Sign in to continue to DebateAI</p>
+          <p className="text-gray-600 mt-2">Sign in to continue to Convoco</p>
         )}
       </CardHeader>
       <CardContent className="pt-6 space-y-4">
@@ -71,7 +66,7 @@ export const LoginForm: React.FC = () => {
                 required
               />
               <p className="mt-1 text-sm text-gray-500">
-                We'll send you a link to reset your password.
+                We&apos;ll send you a link to reset your password.
               </p>
             </div>
             {error && (
@@ -173,7 +168,6 @@ export const LoginForm: React.FC = () => {
                 Sign in
               </Button>
             </form>
-
             <div className="relative py-3">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-200"></div>
@@ -184,7 +178,6 @@ export const LoginForm: React.FC = () => {
                 </span>
               </div>
             </div>
-
             <GoogleButton onClick={handleGoogleLogin} isLoading={loading} />
           </>
         )}

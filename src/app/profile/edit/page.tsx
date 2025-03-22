@@ -191,7 +191,7 @@ export default function EditProfilePage() {
                 Favorite Debate Topics
               </label>
               <p className="text-xs text-gray-500 mt-1">
-                Add topics you're interested in debating
+                Add topics you&aops;re interested in debating
               </p>
               <div className="mt-2 flex">
                 <input

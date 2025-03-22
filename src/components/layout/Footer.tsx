@@ -1,7 +1,6 @@
-// src/components/layout/Footer.tsx
+// src/components/layout/Footer.tsx - Convoco Footer
 import React from "react";
 import Link from "next/link";
-
 export const Footer: React.FC = () => {
   return (
     <footer className="bg-white border-t border-gray-100">
@@ -10,15 +9,15 @@ export const Footer: React.FC = () => {
           <div>
             <Link href="/" className="flex items-center space-x-2">
               <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xl">
-                D
+                C
               </div>
               <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
-                DebateAI
+                Convoco
               </span>
             </Link>
             <p className="mt-4 text-gray-500">
               Practice structured debates with AI-powered feedback and
-              moderation.
+              moderation on Convoco.
             </p>
             <div className="mt-6 flex space-x-4">
               <a href="#" className="text-gray-400 hover:text-purple-600">
@@ -49,7 +48,6 @@ export const Footer: React.FC = () => {
               </a>
             </div>
           </div>
-
           <div>
             <h3 className="text-lg font-medium text-gray-900">Navigation</h3>
             <ul className="mt-4 space-y-3">
@@ -79,7 +77,6 @@ export const Footer: React.FC = () => {
               </li>
             </ul>
           </div>
-
           <div>
             <h3 className="text-lg font-medium text-gray-900">Legal</h3>
             <ul className="mt-4 space-y-3">
@@ -118,10 +115,9 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
         </div>
-
         <div className="mt-12 pt-8 border-t border-gray-100">
           <p className="text-center text-gray-500">
-            &copy; {new Date().getFullYear()} DebateAI. All rights reserved.
+            &copy; {new Date().getFullYear()} Convoco. All rights reserved.
           </p>
         </div>
       </div>

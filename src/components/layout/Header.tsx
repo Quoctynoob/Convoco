@@ -41,10 +41,10 @@ export const Header: React.FC = () => {
             <div className="flex-shrink-0 flex items-center">
               <Link href="/" className="flex items-center space-x-2">
                 <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xl">
-                  D
+                  C
                 </div>
                 <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
-                  DebateAI
+                  Convoco
                 </span>
               </Link>
             </div>
