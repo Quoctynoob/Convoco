@@ -1,4 +1,5 @@
-// src/types/Argument.ts - Updated AIAnalysis interface
+// src/types/Argument.ts
+
 export interface Argument {
   id: string;
   debateId: string;
@@ -9,20 +10,20 @@ export interface Argument {
   createdAt: number;
 }
 
-export interface AIAnalysis {
-  id: string; // Add this field - unique identifier for the analysis document
-  argumentId: string;
-  userId: string;
-  round: number;
-  content: string; // AI's analysis text
-  factCheck: FactCheck[]; // Fact checking results
-  score: number; // Score (1-10)
-  suggestedCounterpoints?: string[]; // Counter arguments the opponent could use
-  createdAt: number;
-}
-
 export interface FactCheck {
   claim: string;
   verified: boolean;
   explanation: string;
+}
+
+export interface AIAnalysis {
+  id: string;  // This is required by TypeScript
+  argumentId: string;
+  userId: string;
+  round: number;
+  content: string;
+  factCheck: FactCheck[];
+  score: number;
+  suggestedCounterpoints?: string[];
+  createdAt: number;
 }
