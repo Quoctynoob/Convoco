@@ -40,10 +40,10 @@ export const Header: React.FC = () => {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link href="/" className="flex items-center space-x-2">
-                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xl">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br bg-black flex items-center justify-center text-white font-bold text-xl">
                   C
                 </div>
-                <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
+                <span className="text-2xl font-bold bg-clip-text text-transparent bg-black">
                   Convoco
                 </span>
               </Link>
@@ -53,8 +53,8 @@ export const Header: React.FC = () => {
                   href="/debates"
                   className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                     pathname === "/debates"
-                      ? "text-purple-700 bg-purple-50"
-                      : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
+                      ? "text-black bg-gray-50"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                   }`}
                 >
                   Debates
@@ -65,8 +65,8 @@ export const Header: React.FC = () => {
                   className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                     pathname === `/profile/${user?.id}` ||
                     pathname.startsWith("/profile/")
-                      ? "text-purple-700 bg-purple-50"
-                      : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
+                      ? "text-black bg-gray-50"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                   }`}
                 >
                   My Profile
@@ -101,14 +101,14 @@ export const Header: React.FC = () => {
                     <div className="absolute right-0 mt-2 w-48 py-2 bg-white rounded-md shadow-lg z-10 border border-gray-100">
                       <Link
                         href={`/profile/${user?.id}`}
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-indigo-600"
                         onClick={() => setDropdownOpen(false)}
                       >
                         Profile
                       </Link>
                       <Link
                         href="/profile/edit"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-indigo-600"
                         onClick={() => setDropdownOpen(false)}
                       >
                         Settings
@@ -118,7 +118,7 @@ export const Header: React.FC = () => {
                           logout();
                           setDropdownOpen(false);
                         }}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700"
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-indigo-600"
                       >
                         Sign out
                       </button>
