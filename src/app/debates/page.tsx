@@ -1,16 +1,17 @@
 // src/app/debates/page.tsx
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { getOpenDebates, getUserActiveDebates } from "@/lib/firebase/firestore";
 import { Debate, DebateStatus } from "@/types/Debate";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/Card";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 
-export default function DebatesPage() {
+// Create a separate component that uses useSearchParams
+function DebatesContent() {
   const [openDebates, setOpenDebates] = useState<Debate[]>([]);
   const [myDebates, setMyDebates] = useState<Debate[]>([]);
   const [filteredDebates, setFilteredDebates] = useState<Debate[]>([]);
@@ -19,8 +20,11 @@ export default function DebatesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const { user, isAuthenticated } = useAuth();
   const router = useRouter();
+  
+  // Import useSearchParams inside this component
+  const { useSearchParams } = require("next/navigation");
   const searchParams = useSearchParams();
-  const refreshParam = searchParams.get('refresh');
+  const refreshParam = searchParams ? searchParams.get('refresh') : null;
 
   // Fetch open debates
   useEffect(() => {
@@ -423,5 +427,18 @@ export default function DebatesPage() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+// Main component with Suspense
+export default function DebatesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    }>
+      <DebatesContent />
+    </Suspense>
   );
 }
