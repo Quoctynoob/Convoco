@@ -1,6 +1,5 @@
 // src/components/auth/SignupForm.tsx
 "use client";
-
 import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +18,7 @@ export const SignupForm: React.FC = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const { signup, loading, error } = useAuth();
 
   const validatePasswords = () => {
@@ -26,39 +26,40 @@ export const SignupForm: React.FC = () => {
       setPasswordError("Passwords do not match");
       return false;
     }
-
     if (password.length < 6) {
       setPasswordError("Password must be at least 6 characters");
       return false;
     }
-
     setPasswordError(null);
     return true;
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validatePasswords()) {
+    if (!validatePasswords() || !acceptTerms) {
       return;
     }
-
     if (username.trim() && email.trim() && password.trim()) {
       await signup(email.trim(), password.trim(), username.trim());
     }
   };
 
   return (
-    <Card className="max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-center">Create Your Account</CardTitle>
+    <Card className="max-w-md mx-auto shadow-md border-gray-200">
+      <CardHeader className="text-center bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-gray-100 rounded-t-lg">
+        <CardTitle className="gradient-text text-2xl font-bold">
+          Create Your Account
+        </CardTitle>
+        <p className="text-gray-600 mt-2">
+          Join DebateAI and start improving your debate skills
+        </p>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <form onSubmit={handleSignup} className="space-y-4">
           <div>
             <label
               htmlFor="username"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-700 mb-1"
             >
               Username
             </label>
@@ -67,16 +68,15 @@ export const SignupForm: React.FC = () => {
               id="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+              className="form-input"
               placeholder="Choose a username"
               required
             />
           </div>
-
           <div>
             <label
               htmlFor="signup-email"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-700 mb-1"
             >
               Email Address
             </label>
@@ -85,16 +85,15 @@ export const SignupForm: React.FC = () => {
               id="signup-email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+              className="form-input"
               placeholder="Enter your email address"
               required
             />
           </div>
-
           <div>
             <label
               htmlFor="signup-password"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-700 mb-1"
             >
               Password
             </label>
@@ -103,16 +102,18 @@ export const SignupForm: React.FC = () => {
               id="signup-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+              className="form-input"
               placeholder="Create a password"
               required
             />
+            <p className="mt-1 text-xs text-gray-500">
+              Password must be at least 6 characters long
+            </p>
           </div>
-
           <div>
             <label
               htmlFor="confirm-password"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-700 mb-1"
             >
               Confirm Password
             </label>
@@ -122,7 +123,11 @@ export const SignupForm: React.FC = () => {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               onBlur={validatePasswords}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+              className={`form-input ${
+                passwordError
+                  ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                  : ""
+              }`}
               placeholder="Confirm your password"
               required
             />
@@ -130,13 +135,42 @@ export const SignupForm: React.FC = () => {
               <p className="mt-1 text-sm text-red-600">{passwordError}</p>
             )}
           </div>
-
+          <div className="flex items-start">
+            <div className="flex items-center h-5">
+              <input
+                id="terms"
+                name="terms"
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="form-checkbox"
+                required
+              />
+            </div>
+            <div className="ml-3 text-sm">
+              <label htmlFor="terms" className="text-gray-600">
+                I agree to the{" "}
+                <Link
+                  href="/terms"
+                  className="text-purple-600 hover:text-purple-700"
+                >
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="/privacy"
+                  className="text-purple-600 hover:text-purple-700"
+                >
+                  Privacy Policy
+                </Link>
+              </label>
+            </div>
+          </div>
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
-
           <Button
             type="submit"
             disabled={
@@ -144,19 +178,25 @@ export const SignupForm: React.FC = () => {
               !email.trim() ||
               !password.trim() ||
               password !== confirmPassword ||
+              !acceptTerms ||
               loading
             }
-            className="w-full"
+            className="w-full mt-6"
+            variant="gradient"
+            isLoading={loading}
           >
-            {loading ? "Creating Account..." : "Create Account"}
+            Create Account
           </Button>
         </form>
       </CardContent>
-      <CardFooter className="flex justify-center">
+      <CardFooter className="flex justify-center border-t border-gray-100 bg-gray-50 py-4 rounded-b-lg">
         <p className="text-sm text-gray-600">
           Already have an account?{" "}
-          <Link href="/auth/login" className="text-blue-600 hover:underline">
-            Login
+          <Link
+            href="/auth/login"
+            className="text-purple-600 hover:text-purple-700 font-medium"
+          >
+            Sign in
           </Link>
         </p>
       </CardFooter>

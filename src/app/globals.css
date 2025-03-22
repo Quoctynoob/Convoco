@@ -3,52 +3,179 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
+  --foreground-rgb: 30, 30, 30;
+  --background-start-rgb: 250, 250, 255;
   --background-end-rgb: 255, 255, 255;
+  --primary: 124, 58, 237; /* purple-600 */
+  --primary-foreground: 255, 255, 255;
+  --secondary: 238, 233, 254; /* purple-100 */
+  --secondary-foreground: 91, 33, 182; /* purple-800 */
+  --accent: 243, 244, 246; /* gray-100 */
+  --accent-foreground: 55, 65, 81; /* gray-700 */
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: white;
+  background: linear-gradient(
+      to bottom,
+      rgb(var(--background-start-rgb)),
+      rgb(var(--background-end-rgb))
+    )
+    fixed;
 }
 
-/* Rich text editing */
+/* Animation utilities */
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-in forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid rgb(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Rich text editing/rendering */
 .prose h1 {
-  @apply text-2xl font-bold mt-6 mb-4;
+  @apply text-2xl font-bold mt-6 mb-4 text-gray-900;
 }
 
 .prose h2 {
-  @apply text-xl font-bold mt-5 mb-3;
+  @apply text-xl font-bold mt-5 mb-3 text-gray-900;
 }
 
 .prose h3 {
-  @apply text-lg font-bold mt-4 mb-2;
+  @apply text-lg font-bold mt-4 mb-2 text-gray-900;
 }
 
 .prose p {
-  @apply mb-3;
+  @apply mb-3 text-gray-700;
 }
 
 .prose ul {
-  @apply list-disc pl-6 mb-3;
+  @apply list-disc pl-6 mb-3 text-gray-700;
 }
 
 .prose ol {
-  @apply list-decimal pl-6 mb-3;
+  @apply list-decimal pl-6 mb-3 text-gray-700;
 }
 
 .prose blockquote {
-  @apply border-l-4 border-gray-300 pl-4 italic my-4;
+  @apply border-l-4 border-purple-300 pl-4 italic my-4 text-gray-600;
 }
 
 .prose a {
-  @apply text-blue-600 hover:underline;
+  @apply text-purple-600 hover:text-purple-700 hover:underline;
 }
 
-/* Add transition effects */
+/* Custom form elements */
+.form-input {
+  @apply block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 sm:text-sm;
+}
+
+.form-select {
+  @apply block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 sm:text-sm;
+}
+
+.form-textarea {
+  @apply block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 sm:text-sm;
+}
+
+.form-checkbox {
+  @apply h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500;
+}
+
+.form-radio {
+  @apply h-4 w-4 border-gray-300 text-purple-600 focus:ring-purple-500;
+}
+
+/* Badge variants */
+.badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.badge-success {
+  @apply bg-green-100 text-green-800;
+}
+
+.badge-warning {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.badge-info {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.badge-error {
+  @apply bg-red-100 text-red-800;
+}
+
+/* Card styles */
+.card-hover {
+  @apply transition-all duration-200 hover:shadow-md hover:border-purple-200;
+}
+
+/* Transition effects */
 .transition-all {
   transition-property: all;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+  transition-duration: 300ms;
+}
+
+/* Gradient text */
+.gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600;
+}
+
+/* Gradient backgrounds */
+.gradient-bg {
+  @apply bg-gradient-to-r from-purple-600 to-indigo-600;
+}
+
+.gradient-bg-light {
+  @apply bg-gradient-to-r from-purple-100 to-indigo-100;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c4b5fd;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a78bfa;
 }

@@ -1,6 +1,5 @@
 // src/components/auth/LoginForm.tsx
 "use client";
-
 import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
@@ -38,19 +37,22 @@ export const LoginForm: React.FC = () => {
   };
 
   return (
-    <Card className="max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-center">
-          {showForgotPassword ? "Reset Password" : "Login to Your Account"}
+    <Card className="max-w-md mx-auto shadow-md border-gray-200">
+      <CardHeader className="text-center bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-gray-100 rounded-t-lg">
+        <CardTitle className="gradient-text text-2xl font-bold">
+          {showForgotPassword ? "Reset Password" : "Welcome Back"}
         </CardTitle>
+        {!showForgotPassword && (
+          <p className="text-gray-600 mt-2">Sign in to continue to DebateAI</p>
+        )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6 space-y-4">
         {showForgotPassword ? (
           <form onSubmit={handleForgotPassword} className="space-y-4">
             <div>
               <label
                 htmlFor="reset-email"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-gray-700 mb-1"
               >
                 Email Address
               </label>
@@ -59,28 +61,35 @@ export const LoginForm: React.FC = () => {
                 id="reset-email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+                className="form-input"
                 placeholder="Enter your email address"
                 required
               />
+              <p className="mt-1 text-sm text-gray-500">
+                We'll send you a link to reset your password.
+              </p>
             </div>
-
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-md">
                 <p className="text-sm text-red-700">{error}</p>
               </div>
             )}
-
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between pt-2">
               <Button
                 type="button"
                 variant="ghost"
                 onClick={() => setShowForgotPassword(false)}
+                className="text-gray-600"
               >
                 Back to Login
               </Button>
-              <Button type="submit" disabled={!email.trim() || loading}>
-                {loading ? "Sending..." : "Send Reset Link"}
+              <Button
+                type="submit"
+                disabled={!email.trim() || loading}
+                isLoading={loading}
+                variant="gradient"
+              >
+                Send Reset Link
               </Button>
             </div>
           </form>
@@ -89,7 +98,7 @@ export const LoginForm: React.FC = () => {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-gray-700 mb-1"
               >
                 Email Address
               </label>
@@ -98,59 +107,76 @@ export const LoginForm: React.FC = () => {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+                className="form-input"
                 placeholder="Enter your email address"
                 required
               />
             </div>
-
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-sm text-purple-600 hover:text-purple-700"
+                >
+                  Forgot password?
+                </button>
+              </div>
               <input
                 type="password"
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+                className="form-input"
                 placeholder="Enter your password"
                 required
               />
             </div>
-
+            <div className="flex items-center">
+              <input
+                id="remember-me"
+                name="remember-me"
+                type="checkbox"
+                className="form-checkbox"
+              />
+              <label
+                htmlFor="remember-me"
+                className="ml-2 block text-sm text-gray-700"
+              >
+                Remember me
+              </label>
+            </div>
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-md">
                 <p className="text-sm text-red-700">{error}</p>
               </div>
             )}
-
-            <div className="flex items-center justify-between">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setShowForgotPassword(true)}
-              >
-                Forgot Password?
-              </Button>
-              <Button
-                type="submit"
-                disabled={!email.trim() || !password.trim() || loading}
-              >
-                {loading ? "Logging in..." : "Login"}
-              </Button>
-            </div>
+            <Button
+              type="submit"
+              disabled={!email.trim() || !password.trim() || loading}
+              className="w-full"
+              variant="gradient"
+              isLoading={loading}
+            >
+              Sign in
+            </Button>
           </form>
         )}
       </CardContent>
-      <CardFooter className="flex justify-center">
+      <CardFooter className="flex justify-center border-t border-gray-100 bg-gray-50 py-4 rounded-b-lg">
         <p className="text-sm text-gray-600">
           Don&apos;t have an account?{" "}
-          <Link href="/auth/signup" className="text-blue-600 hover:underline">
-            Sign up
+          <Link
+            href="/auth/signup"
+            className="text-purple-600 hover:text-purple-700 font-medium"
+          >
+            Sign up now
           </Link>
         </p>
       </CardFooter>
