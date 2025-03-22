@@ -16,8 +16,17 @@ import {
   getArgumentAnalysis,
   updateDebate,
   forfeitDebate,
+  getDebateArguments,
 } from "@/lib/firebase/firestore";
 import { analyzeArgument } from "@/lib/gemini/api";
+import {
+  onSnapshot,
+  collection,
+  query,
+  where,
+  orderBy,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase/firebase";
 
 interface DebateArenaProps {
   debate: Debate;
@@ -29,7 +38,7 @@ interface DebateArenaProps {
 
 export const DebateArena: React.FC<DebateArenaProps> = ({
   debate,
-  arguments: debateArguments,
+  arguments: initialArguments,
   creator,
   opponent,
   onJoinDebate,
@@ -40,6 +49,8 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
   const [analyses, setAnalyses] = useState<AIAnalysis[]>([]);
   const [showForfeitModal, setShowForfeitModal] = useState(false);
   const [isForfeiting, setIsForfeiting] = useState(false);
+  const [debateArguments, setDebateArguments] =
+    useState<Argument[]>(initialArguments);
 
   const isCreator = user?.id === debate.creatorId;
   const isOpponent = user?.id === debate.opponentId;
@@ -50,6 +61,51 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
   const wasForfeited = !!debate.forfeitedBy;
   const forfeitedByCreator = debate.forfeitedBy === debate.creatorId;
   const forfeitedByMe = user?.id === debate.forfeitedBy;
+
+  // Real-time listener for debate arguments
+  useEffect(() => {
+    if (!debate.id) return;
+
+    // Create a query to listen for debate arguments
+    const argumentsRef = collection(db, "arguments");
+    const q = query(
+      argumentsRef,
+      where("debateId", "==", debate.id),
+      orderBy("createdAt", "asc")
+    );
+
+    // Set up real-time listener
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const argumentsList: Argument[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          argumentsList.push({
+            id: doc.id,
+            debateId: data.debateId,
+            userId: data.userId,
+            content: data.content,
+            round: data.round,
+            side: data.side,
+            createdAt: data.createdAt,
+          });
+        });
+
+        setDebateArguments(argumentsList);
+        console.log(
+          "Real-time arguments update received:",
+          argumentsList.length
+        );
+      },
+      (err) => {
+        console.error("Error in arguments listener:", err);
+        setError("Failed to get real-time updates for debate arguments.");
+      }
+    );
+
+    return () => unsubscribe();
+  }, [debate.id]);
 
   useEffect(() => {
     // Load analyses for existing arguments
@@ -105,16 +161,13 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
 
   const getPreviousArgument = (): Argument | null => {
     if (!debateArguments.length) return null;
-
     // If it's the creator's turn, get the last argument from the opponent
     // If it's the opponent's turn, get the last argument from the creator
     const targetUserId = isCreator ? debate.opponentId : debate.creatorId;
-
     // Sort arguments by creation time (newest first)
     const sortedArgs = [...debateArguments].sort(
       (a, b) => b.createdAt - a.createdAt
     );
-
     // Find the most recent argument from the target user
     return sortedArgs.find((arg) => arg.userId === targetUserId) || null;
   };
@@ -122,7 +175,6 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
   const getPreviousArgumentUser = (): User | null => {
     const prevArg = getPreviousArgument();
     if (!prevArg) return null;
-
     // Return the user who created the previous argument
     return prevArg.userId === creator.id ? creator : opponent;
   };
@@ -299,6 +351,7 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
         />
       );
     }
+
     return (
       <div className="space-y-8">
         {/* Round indicators */}
@@ -338,29 +391,47 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
             </div>
           </div>
         )}
+
         {/* Arguments and analyses */}
-        {debateArguments.map((argument) => {
-          const analysis = analyses.find((a) => a.argumentId === argument.id);
-          const isCreatorArgument = argument.userId === creator.id;
-          const user = isCreatorArgument ? creator : opponent;
-          return (
-            <div key={argument.id} className="space-y-4">
-              <ArgumentDisplay
-                argument={argument}
-                user={user!}
-                isCreator={isCreatorArgument}
-              />
-              {analysis && (
-                <AIAnalysisDisplay
-                  analysis={analysis}
-                  showCounterpoints={
-                    isParticipant && debate.currentTurn === user?.id
-                  }
-                />
-              )}
-            </div>
-          );
-        })}
+        {debateArguments.length > 0 ? (
+          <div className="space-y-8">
+            {debateArguments.map((argument) => {
+              const analysis = analyses.find(
+                (a) => a.argumentId === argument.id
+              );
+              const isCreatorArgument = argument.userId === creator.id;
+              const argUser = isCreatorArgument ? creator : opponent;
+
+              return (
+                <div key={argument.id} className="space-y-4">
+                  <ArgumentDisplay
+                    argument={argument}
+                    user={argUser!}
+                    isCreator={isCreatorArgument}
+                  />
+                  {analysis && (
+                    <AIAnalysisDisplay
+                      analysis={analysis}
+                      showCounterpoints={
+                        isParticipant && debate.currentTurn === user?.id
+                      }
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
+            <p className="text-gray-500">
+              No arguments have been made yet.
+              {isMyTurn &&
+                debate.status === DebateStatus.ACTIVE &&
+                " It's your turn to start the debate."}
+            </p>
+          </div>
+        )}
+
         {debate.status === DebateStatus.ACTIVE && isMyTurn && (
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
             <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-indigo-50">
@@ -383,6 +454,7 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
             </div>
           </div>
         )}
+
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-md p-4 mt-4">
             <p className="text-sm text-red-700">{error}</p>
