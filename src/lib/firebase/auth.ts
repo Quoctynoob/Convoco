@@ -3,18 +3,13 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  updateProfile,
   sendPasswordResetEmail,
   GoogleAuthProvider,
   signInWithPopup,
-  User as FirebaseUser,
 } from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebase";
-import { User } from "@/types/User";
-
-// Google provider
-const googleProvider = new GoogleAuthProvider();
+import { User, UserStats } from "@/types/User";
 
 export const registerUser = async (
   email: string,
@@ -22,7 +17,7 @@ export const registerUser = async (
   username: string
 ) => {
   try {
-    // Create auth user
+    // Create user with Firebase Auth
     const userCredential = await createUserWithEmailAndPassword(
       auth,
       email,
@@ -30,26 +25,28 @@ export const registerUser = async (
     );
     const user = userCredential.user;
 
-    // Update profile with username
-    await updateProfile(user, { displayName: username });
-
-    // Create user document in Firestore
-    const newUser: Omit<User, "id"> = {
-      username,
-      email,
-      photoURL: user.photoURL || "",
-      bio: "",
-      debateTopics: [],
-      stats: {
-        wins: 0,
-        losses: 0,
-        totalDebates: 0,
-      },
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+    // Initialize stats for the leaderboard
+    const defaultStats: UserStats = {
+      wins: 0,
+      losses: 0,
+      totalDebates: 0,
+      points: 0
     };
 
-    await setDoc(doc(db, "users", user.uid), newUser);
+    // Create a user record in Firestore
+    await setDoc(doc(db, "users", user.uid), {
+      username,
+      email,
+      photoURL: user.photoURL,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      gender: "",
+      location: "",
+      bio: "",
+      debateTopics: [],
+      stats: defaultStats
+    });
+
     return user;
   } catch (error) {
     console.error("Error registering user:", error);
@@ -66,7 +63,7 @@ export const loginUser = async (email: string, password: string) => {
     );
     return userCredential.user;
   } catch (error) {
-    console.error("Error logging in:", error);
+    console.error("Error logging in user:", error);
     throw error;
   }
 };
@@ -75,7 +72,7 @@ export const logoutUser = async () => {
   try {
     await signOut(auth);
   } catch (error) {
-    console.error("Error logging out:", error);
+    console.error("Error logging out user:", error);
     throw error;
   }
 };
@@ -89,88 +86,84 @@ export const resetPassword = async (email: string) => {
   }
 };
 
-export const getUserProfile = async (userId: string): Promise<User | null> => {
-  try {
-    console.log("Getting user profile for userId:", userId);
-    
-    if (!userId) {
-      console.error("getUserProfile called with empty userId");
-      return null;
-    }
-    
-    const userDoc = await getDoc(doc(db, "users", userId));
-
-    if (userDoc.exists()) {
-      const userData = userDoc.data();
-      console.log("User data found in Firestore");
-      
-      // Ensure stats exists to prevent errors
-      if (!userData.stats) {
-        userData.stats = {
-          wins: 0,
-          losses: 0,
-          totalDebates: 0
-        };
-      }
-      
-      // Make sure all required fields have defaults
-      const userWithDefaults = {
-        id: userDoc.id,
-        username: userData.username || 'User',
-        email: userData.email || '',
-        photoURL: userData.photoURL || '',
-        bio: userData.bio || '',
-        gender: userData.gender || '',
-        location: userData.location || '',
-        debateTopics: userData.debateTopics || [],
-        stats: userData.stats,
-        createdAt: userData.createdAt || Date.now(),
-        updatedAt: userData.updatedAt || Date.now()
-      };
-      
-      return userWithDefaults as User;
-    }
-
-    console.error("No user document found for userId:", userId);
-    return null;
-  } catch (error) {
-    console.error("Error getting user profile:", error);
-    throw error;
-  }
-};
-
-// Google authentication
 export const signInWithGoogle = async () => {
   try {
-    const result = await signInWithPopup(auth, googleProvider);
-    const user = result.user;
+    const provider = new GoogleAuthProvider();
+    const userCredential = await signInWithPopup(auth, provider);
+    const user = userCredential.user;
 
-    // Check if the user already exists in Firestore
-    const userDoc = await getDoc(doc(db, "users", user.uid));
+    // Check if user document exists
+    const userRef = doc(db, "users", user.uid);
+    const userDoc = await getDoc(userRef);
 
+    // If user doesn't exist in Firestore, create a new document
     if (!userDoc.exists()) {
-      // Create new user document if they don't exist
-      const newUser: Omit<User, "id"> = {
-        username: user.displayName || user.email?.split("@")[0] || "User",
-        email: user.email || "",
-        photoURL: user.photoURL || "",
-        bio: "",
-        debateTopics: [],
-        stats: {
-          wins: 0,
-          losses: 0,
-          totalDebates: 0,
-        },
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+      // Extract username from email or use display name
+      const username = user.displayName || user.email?.split("@")[0] || "User";
+      
+      // Initialize stats for the leaderboard
+      const defaultStats: UserStats = {
+        wins: 0,
+        losses: 0,
+        totalDebates: 0,
+        points: 0
       };
 
-      await setDoc(doc(db, "users", user.uid), newUser);
+      await setDoc(userRef, {
+        username,
+        email: user.email,
+        photoURL: user.photoURL,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        gender: "",
+        location: "",
+        bio: "",
+        debateTopics: [],
+        stats: defaultStats
+      });
     }
 
     return user;
   } catch (error) {
-    console.error("Error with Google sign in:", error);
+    console.error("Error signing in with Google:", error);
+    throw error;
+  }
+};
+
+export const getUserProfile = async (userId: string): Promise<User | null> => {
+  try {
+    const userRef = doc(db, "users", userId);
+    const userDoc = await getDoc(userRef);
+
+    if (!userDoc.exists()) {
+      return null;
+    }
+
+    const userData = userDoc.data();
+    
+    // Ensure stats exist with default values
+    const stats = userData.stats || {
+      wins: 0,
+      losses: 0,
+      totalDebates: 0,
+      points: 0
+    };
+
+    return {
+      id: userDoc.id,
+      username: userData.username || "Anonymous",
+      email: userData.email || "",
+      photoURL: userData.photoURL || null,
+      createdAt: userData.createdAt || Date.now(),
+      updatedAt: userData.updatedAt || Date.now(),
+      gender: userData.gender || "",
+      location: userData.location || "",
+      bio: userData.bio || "",
+      debateTopics: userData.debateTopics || [],
+      stats: stats
+    };
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
     throw error;
   }
 };

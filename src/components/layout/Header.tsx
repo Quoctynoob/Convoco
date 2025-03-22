@@ -1,4 +1,4 @@
-// src/components/layout/Header.tsx
+// src/components/layout/Header.tsx - Updated with Leaderboard Link
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
@@ -58,6 +58,16 @@ export const Header: React.FC = () => {
                   }`}
                 >
                   Debates
+                </Link>
+              <Link
+                  href="/leaderboard"
+                  className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    pathname === "/leaderboard"
+                      ? "text-black bg-gray-50"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  }`}
+                >
+                  Leaderboard
                 </Link>
               {isAuthenticated && (
                 <Link
@@ -206,6 +216,18 @@ export const Header: React.FC = () => {
               onClick={() => setMobileMenuOpen(false)}
             >
               Debates
+            </Link>
+            
+            <Link
+              href="/leaderboard"
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                pathname === "/leaderboard"
+                  ? "text-black bg-gray-50"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              }`}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Leaderboard
             </Link>
 
             {isAuthenticated ? (
