@@ -50,10 +50,10 @@ export default function ContactPage() {
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Social Media</h2>
             <p className="text-gray-700">Follow us for updates and community discussions:</p>
             <div className="flex gap-4 mt-2">
-              <Button variant="outline" asChild>
+              <Button variant="outline">
                 <a href="https://twitter.com/convocoapp" target="_blank" rel="noopener noreferrer">Twitter</a>
               </Button>
-              <Button variant="outline" asChild>
+              <Button variant="outline">
                 <a href="https://discord.gg/convoco" target="_blank" rel="noopener noreferrer">Discord</a>
               </Button>
             </div>
