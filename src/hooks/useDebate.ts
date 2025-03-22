@@ -258,7 +258,7 @@ export const useDebate = (debateId: string) => {
 
   return {
     debate,
-    arguments,
+    debateArguments: arguments,
     loading,
     error,
     joinDebate,
@@ -302,4 +302,3 @@ export const useDebateList = (userId?: string) => {
     error,
   };
 };
-

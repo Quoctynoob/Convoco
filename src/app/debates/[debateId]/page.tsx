@@ -14,8 +14,14 @@ import { User } from "@/types/User";
 export default function DebateDetailPage() {
   const { debateId } = useParams();
   const { user } = useAuth();
-  const { debate, arguments, loading, error, joinDebate, submitArgument } =
-    useDebate(debateId);
+  const {
+    debate,
+    debateArguments: arguments,
+    loading,
+    error,
+    joinDebate,
+    submitArgument,
+  } = useDebate(debateId);
 
   const [creator, setCreator] = useState<User | null>(null);
   const [opponent, setOpponent] = useState<User | null>(null);
@@ -112,7 +118,7 @@ export default function DebateDetailPage() {
 
       <DebateArena
         debate={debate}
-        arguments={arguments}
+        arguments={debateArguments}
         creator={creator}
         opponent={opponent}
         onJoinDebate={handleJoinDebate}
