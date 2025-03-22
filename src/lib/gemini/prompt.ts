@@ -11,29 +11,22 @@ export const generateAnalysisPrompt = (
   opponent: User
 ): string => {
   return `
-You are an AI debate moderator for a structured debate on the topic: "${
-    debate.topic
-  }".
+You are an AI debate moderator for a structured debate on the topic: "${debate.topic}".
 Current round: ${currentArgument.round} of ${debate.rounds}
-Current speaker: ${
-    currentArgument.userId === creator.id ? creator.username : opponent.username
-  } (${currentArgument.side})
+Current speaker: ${currentArgument.userId === creator.id ? creator.username : opponent.username} (${currentArgument.side})
 Their argument:
 "${currentArgument.content}"
-${
-  previousArguments.length > 0
-    ? `
+${previousArguments.length > 0
+  ? `
 Previous arguments:
 ${previousArguments
   .map(
     (arg) =>
-      `[Round ${arg.round}] ${
-        arg.userId === creator.id ? creator.username : opponent.username
-      } (${arg.side}): "${arg.content}"`
+      `[Round ${arg.round}] ${arg.userId === creator.id ? creator.username : opponent.username} (${arg.side}): "${arg.content}"`
   )
   .join("\n")}
 `
-    : "This is the first argument in the debate."
+  : "This is the first argument in the debate."
 }
 Please analyze this argument objectively. Respond in JSON format with the following structure:
 {
@@ -93,9 +86,7 @@ You are an AI judge for a structured debate on the topic: "${debate.topic}".
 Debate participants:
 - Creator: ${creator.username} (average score: ${creatorAvgScore.toFixed(2)})
 - Opponent: ${opponent.username} (average score: ${opponentAvgScore.toFixed(2)})
-The debate consisted of ${
-    debate.rounds
-  } rounds. Here's a summary of the arguments and analyses:
+The debate consisted of ${debate.rounds} rounds. Here's a summary of the arguments and analyses:
 ${debateArguments
   .map((arg) => {
     const speaker =
