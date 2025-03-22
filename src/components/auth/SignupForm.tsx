@@ -11,6 +11,7 @@ import {
   CardFooter,
 } from "@/components/ui/Card";
 import { useAuth } from "@/hooks/useAuth";
+import { GoogleButton } from "./GoogleButton";
 
 export const SignupForm: React.FC = () => {
   const [username, setUsername] = useState("");
@@ -19,7 +20,7 @@ export const SignupForm: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const { signup, loading, error } = useAuth();
+  const { signup, loginWithGoogle, loading, error } = useAuth();
 
   const validatePasswords = () => {
     if (password !== confirmPassword) {
@@ -42,6 +43,10 @@ export const SignupForm: React.FC = () => {
     if (username.trim() && email.trim() && password.trim()) {
       await signup(email.trim(), password.trim(), username.trim());
     }
+  };
+
+  const handleGoogleSignup = async () => {
+    await loginWithGoogle();
   };
 
   return (
@@ -188,6 +193,21 @@ export const SignupForm: React.FC = () => {
             Create Account
           </Button>
         </form>
+
+        <div className="relative py-3 mt-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">Or sign up with</span>
+          </div>
+        </div>
+
+        <GoogleButton
+          onClick={handleGoogleSignup}
+          isLoading={loading}
+          label="Sign up with Google"
+        />
       </CardContent>
       <CardFooter className="flex justify-center border-t border-gray-100 bg-gray-50 py-4 rounded-b-lg">
         <p className="text-sm text-gray-600">

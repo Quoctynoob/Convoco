@@ -1,6 +1,5 @@
 // src/hooks/useAuth.ts
 "use client";
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -8,6 +7,7 @@ import {
   loginUser,
   logoutUser,
   resetPassword,
+  signInWithGoogle,
 } from "@/lib/firebase/auth";
 import { useAuth as useAuthContext } from "@/context/AuthContext";
 
@@ -44,6 +44,23 @@ export const useAuth = () => {
     } catch (e) {
       const errorMessage =
         e instanceof Error ? e.message : "Unknown error during login";
+      setError(errorMessage);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loginWithGoogle = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await signInWithGoogle();
+      router.push("/");
+      return true;
+    } catch (e) {
+      const errorMessage =
+        e instanceof Error ? e.message : "Unknown error during Google login";
       setError(errorMessage);
       return false;
     } finally {
@@ -90,6 +107,7 @@ export const useAuth = () => {
     error,
     signup,
     login,
+    loginWithGoogle,
     logout,
     forgotPassword,
     isAuthenticated: !!auth.user,

@@ -5,11 +5,16 @@ import {
   signOut,
   updateProfile,
   sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithPopup,
   User as FirebaseUser,
 } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import { User } from "@/types/User";
+
+// Google provider
+const googleProvider = new GoogleAuthProvider();
 
 export const registerUser = async (
   email: string,
@@ -45,7 +50,6 @@ export const registerUser = async (
     };
 
     await setDoc(doc(db, "users", user.uid), newUser);
-
     return user;
   } catch (error) {
     console.error("Error registering user:", error);
@@ -96,6 +100,42 @@ export const getUserProfile = async (userId: string): Promise<User | null> => {
     return null;
   } catch (error) {
     console.error("Error getting user profile:", error);
+    throw error;
+  }
+};
+
+// Google authentication
+export const signInWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+
+    // Check if the user already exists in Firestore
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+
+    if (!userDoc.exists()) {
+      // Create new user document if they don't exist
+      const newUser: Omit<User, "id"> = {
+        username: user.displayName || user.email?.split("@")[0] || "User",
+        email: user.email || "",
+        photoURL: user.photoURL || "",
+        bio: "",
+        debateTopics: [],
+        stats: {
+          wins: 0,
+          losses: 0,
+          totalDebates: 0,
+        },
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      await setDoc(doc(db, "users", user.uid), newUser);
+    }
+
+    return user;
+  } catch (error) {
+    console.error("Error with Google sign in:", error);
     throw error;
   }
 };
