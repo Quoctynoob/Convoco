@@ -283,14 +283,14 @@ export const getDebateArguments = async (
     );
 
     const querySnapshot = await getDocs(q);
-    const arguments: Argument[] = [];
+    const debateArguments: Argument[] = []; // Changed from 'arguments' to 'debateArguments'
 
     querySnapshot.forEach((doc) => {
-      arguments.push({ id: doc.id, ...doc.data() } as Argument);
+      debateArguments.push({ id: doc.id, ...doc.data() } as Argument);
     });
 
     // Sort by round and then by createdAt
-    return arguments.sort((a, b) => {
+    return debateArguments.sort((a, b) => {
       if (a.round !== b.round) {
         return a.round - b.round;
       }
