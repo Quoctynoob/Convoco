@@ -50,15 +50,15 @@ export const Header: React.FC = () => {
             </div>
             <nav className="hidden md:ml-8 md:flex md:space-x-8">
               <Link
-                  href="/debates"
-                  className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    pathname === "/debates"
-                      ? "text-purple-700 bg-purple-50"
-                      : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
-                  }`}
-                >
-                  Debates
-                </Link>
+                href="/debates"
+                className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  pathname === "/debates"
+                    ? "text-purple-700 bg-purple-50"
+                    : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
+                }`}
+              >
+                Debates
+              </Link>
               {isAuthenticated && (
                 <Link
                   href={`/profile/${user?.id}`}
@@ -72,6 +72,47 @@ export const Header: React.FC = () => {
                   My Profile
                 </Link>
               )}
+              {/* New Navigation Links */}
+              <Link
+                href="/faq"
+                className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  pathname === "/faq"
+                    ? "text-purple-700 bg-purple-50"
+                    : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
+                }`}
+              >
+                FAQ
+              </Link>
+              <Link
+                href="/terms"
+                className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  pathname === "/terms"
+                    ? "text-purple-700 bg-purple-50"
+                    : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
+                }`}
+              >
+                Terms
+              </Link>
+              <Link
+                href="/privacy"
+                className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  pathname === "/privacy"
+                    ? "text-purple-700 bg-purple-50"
+                    : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
+                }`}
+              >
+                Privacy
+              </Link>
+              <Link
+                href="/contact"
+                className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  pathname === "/contact"
+                    ? "text-purple-700 bg-purple-50"
+                    : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
+                }`}
+              >
+                Contact
+              </Link>
             </nav>
           </div>
           <div className="hidden md:flex items-center">
@@ -195,6 +236,62 @@ export const Header: React.FC = () => {
                 My Profile
               </Link>
             )}
+            {/* New Navigation Links for Mobile */}
+            <Link
+              href="/debates"
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                pathname === "/debates"
+                  ? "text-purple-700 bg-purple-50"
+                  : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
+              }`}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Debates
+            </Link>
+            <Link
+              href="/faq"
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                pathname === "/faq"
+                  ? "text-purple-700 bg-purple-50"
+                  : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
+              }`}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              FAQ
+            </Link>
+            <Link
+              href="/terms"
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                pathname === "/terms"
+                  ? "text-purple-700 bg-purple-50"
+                  : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
+              }`}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Terms
+            </Link>
+            <Link
+              href="/privacy"
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                pathname === "/privacy"
+                  ? "text-purple-700 bg-purple-50"
+                  : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
+              }`}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Privacy
+            </Link>
+            <Link
+              href="/contact"
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                pathname === "/contact"
+                  ? "text-purple-700 bg-purple-50"
+                  : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
+              }`}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Contact
+            </Link>
 
             {isAuthenticated ? (
               <>
