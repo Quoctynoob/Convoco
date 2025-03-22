@@ -537,10 +537,6 @@ export default function PrivacyPage() {
                 quoc@uoguelph.ca
               </a>
             </p>
-            <p className="text-gray-700">
-              Address: 123 Debate Avenue, Suite 200, San Francisco, CA 94107,
-              USA
-            </p>
           </div>
         </section>
 

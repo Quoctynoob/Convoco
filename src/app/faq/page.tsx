@@ -297,10 +297,10 @@ export default function FAQPage() {
                 team reviews all reports promptly. For serious concerns, please
                 contact us directly through our{" "}
                 <Link
-                  href="/contact"
+                  href="mailto:quoc@uoguelph.ca"
                   className="text-purple-600 hover:underline"
                 >
-                  Contact Page
+                  Email
                 </Link>
                 .
               </p>
@@ -323,10 +323,10 @@ export default function FAQPage() {
                 If your question isn't answered here, you can reach out to our
                 support team through our{" "}
                 <Link
-                  href="/contact"
+                  href="mailto:quoc@uoguelph.ca"
                   className="text-purple-600 hover:underline"
                 >
-                  Contact Page
+                  Email
                 </Link>
                 . We typically respond within 24-48 hours. You can also check
                 our{" "}
@@ -342,9 +342,6 @@ export default function FAQPage() {
         <div className="flex justify-center pt-4">
           <Link href="/">
             <Button variant="outline">Return to Home</Button>
-          </Link>
-          <Link href="/contact" className="ml-4">
-            <Button variant="gradient">Contact Support</Button>
           </Link>
         </div>
       </div>
