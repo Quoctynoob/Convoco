@@ -8,10 +8,10 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
             <Link href="/" className="flex items-center space-x-2">
-              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xl">
+              <div className="h-10 w-10 rounded-lg bg-black flex items-center justify-center text-white font-bold text-xl">
                 C
               </div>
-              <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
+              <span className="text-2xl font-bold bg-clip-text text-transparent  bg-black">
                 Convoco
               </span>
             </Link>

@@ -40,7 +40,7 @@ export const LoginForm: React.FC = () => {
     <Card className="max-w-md mx-auto shadow-md border-gray-200">
       <CardHeader className="text-center bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-gray-100 rounded-t-lg">
         <CardTitle className="gradient-text text-2xl font-bold">
-          {showForgotPassword ? "Reset Password" : "Welcome Back"}
+          {showForgotPassword ? "Reset Password" : "Log In"}
         </CardTitle>
         {!showForgotPassword && (
           <p className="text-gray-600 mt-2">Sign in to continue to Convoco</p>
@@ -124,7 +124,7 @@ export const LoginForm: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowForgotPassword(true)}
-                    className="text-sm text-purple-600 hover:text-purple-700"
+                    className="text-sm text-blue-700 hover:text-blue-900 underline"
                   >
                     Forgot password?
                   </button>
@@ -162,7 +162,7 @@ export const LoginForm: React.FC = () => {
                 type="submit"
                 disabled={!email.trim() || !password.trim() || loading}
                 className="w-full"
-                variant="gradient"
+                variant="theme"
                 isLoading={loading}
               >
                 Sign in
@@ -187,7 +187,7 @@ export const LoginForm: React.FC = () => {
           Don&apos;t have an account?{" "}
           <Link
             href="/auth/signup"
-            className="text-purple-600 hover:text-purple-700 font-medium"
+            className="text-blue-700 hover:text-blue-900 font-medium"
           >
             Sign up now
           </Link>

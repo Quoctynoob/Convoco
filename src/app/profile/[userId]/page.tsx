@@ -147,112 +147,123 @@ export default function UserProfilePage() {
     );
   }
 
+  const winPercentage = Math.round((user.stats.wins / user.stats.totalDebates) * 100);
+  const radius = 60;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDasharray = circumference;
+  const strokeDashoffset = circumference - (winPercentage / 100) * circumference;
+
   return (
-    <div className="space-y-8 max-w-5xl mx-auto px-4">
-      {/* Profile Header */}
-      <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-        <div className="flex flex-col md:flex-row md:items-center gap-6">
-          <div className="md:w-1/4 flex justify-center">
-            {user.photoURL ? (
-              <img
-                src={user.photoURL}
-                alt={user.username}
-                className="h-32 w-32 rounded-full object-cover border-4 border-purple-200 shadow-lg"
-              />
-            ) : (
-              <div className="h-32 w-32 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-4xl font-bold shadow-lg">
-                {user.username.charAt(0).toUpperCase()}
-              </div>
-            )}
-          </div>
-          
-          <div className="md:w-3/4 text-center md:text-left">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-4">
-              <h1 className="text-3xl font-bold text-gray-900">{user.username}</h1>
-              
-              {isCurrentUser && (
-                <Link href="/profile/edit">
-                  <Button variant="outline" className="mt-2 md:mt-0">Edit Profile</Button>
-                </Link>
-              )}
+    <div className="max-w-4xl mx-auto p-6">
+      <div className="flex flex-col md:flex-row gap-6 mb-8">
+        {/* Section 1: Debate Statistics with Circle Chart */}
+        <div className="w-full md:w-1/2 bg-white p-6 rounded-lg shadow">
+          <h2 className="text-xl font-bold mb-4">Debate Statistics</h2>
+          <div className="flex items-center ">
+          {/* Circle chart */}
+            <div className="relative">
+              <svg width="150" height="150" viewBox="0 0 150 150">
+                {/* Background circle */}
+                <circle 
+                  cx="75" 
+                  cy="75" 
+                  r={radius} 
+                  stroke="#a6a6a6" 
+                  strokeWidth="12" 
+                  fill="none" 
+                />
+                
+                {/* Progress circle */}
+                <circle 
+                  cx="75" 
+                  cy="75" 
+                  r={radius} 
+                  stroke="#0F0F0F" 
+                  strokeWidth="12" 
+                  fill="none" 
+                  strokeDasharray={strokeDasharray}
+                  strokeDashoffset={strokeDashoffset}
+                  transform="rotate(-90 75 75)"
+                />
+
+              {/* Percentage text */}
+                <text 
+                  x="75" 
+                  y="70" 
+                  textAnchor="middle" 
+                  dominantBaseline="middle" 
+                  fontSize="24" 
+                  fontWeight="bold"
+                >
+                  {user.stats?.totalDebates || 0}
+                </text>
+                <text
+                  x="75"
+                  y="100"
+                  textAnchor="middle" 
+                  dominantBaseline="middle" 
+                  fontSize="16" 
+                  fontWeight="bold"
+                  >
+                  Total
+                </text>
+              </svg>
             </div>
-            
-            <div className="flex flex-wrap gap-2 mb-4">
-              {/* Display user metadata like gender and location if available */}
-              {user.gender && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {user.gender}
-                </span>
-              )}
-              
-              {user.location && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  {user.location}
-                </span>
-              )}
-            </div>
-            
-            {user.bio ? (
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 mb-4">
-                <h2 className="text-sm font-semibold text-gray-700 mb-2">Bio</h2>
-                <p className="text-gray-600">{user.bio}</p>
+            {/* Legend */}
+            <div className="ml-6">
+              <div className="flex items-center mb-2">
+                <div className="w-4 h-4 rounded-full bg-black mr-2"></div>
+                <p>Wins: {user.stats?.wins || 0}</p>
               </div>
-            ) : (
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 mb-4 text-center italic text-gray-500">
-                {isCurrentUser ? 'Add a bio to tell others about yourself' : 'This user has not added a bio yet'}
+              <div className="flex items-center">
+                <div className="w-4 h-4 rounded-full bg-[#a6a6a6] mr-2"></div>
+                <p>Losses: {user.stats?.losses || 0}</p>
               </div>
-            )}
+              <div className="mt-2 text-sm text-gray-500">
+                  Win Rate: {user.stats && user.stats.totalDebates > 0 
+                  ? winPercentage: 0}%
+              </div>
           </div>
         </div>
       </div>
-      
-      {/* Stats Section */}
-      <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Debate Stats</h2>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-100">
-            <CardContent className="pt-6 text-center">
-              <div className="text-3xl font-bold text-purple-600">{user.stats?.totalDebates || 0}</div>
-              <div className="text-sm text-gray-500 mt-1">Total Debates</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-100">
-            <CardContent className="pt-6 text-center">
-              <div className="text-3xl font-bold text-green-600">{user.stats?.wins || 0}</div>
-              <div className="text-sm text-gray-500 mt-1">Wins</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-to-br from-red-50 to-rose-50 border-red-100">
-            <CardContent className="pt-6 text-center">
-              <div className="text-3xl font-bold text-red-600">{user.stats?.losses || 0}</div>
-              <div className="text-sm text-gray-500 mt-1">Losses</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-100">
-            <CardContent className="pt-6 text-center">
-              <div className="text-3xl font-bold text-blue-600">
-                {user.stats && user.stats.totalDebates > 0 
-                  ? Math.round((user.stats.wins / user.stats.totalDebates) * 100) 
-                  : 0}%
-              </div>
-              <div className="text-sm text-gray-500 mt-1">Win Rate</div>
-            </CardContent>
-          </Card>
-        </div>
+      {/* Section 2: User Profile */}
+    <div className="w-full md:w-1/2 bg-white p-6 rounded-lg shadow">
+    <div className="flex flex-col md:flex-row justify-between items-center mb-4">
+        <h1 className="text-xl font-bold mb-4">{user.username}</h1>
+        {isCurrentUser && (
+              <Link href="/profile/edit">
+                <Button variant="outline" className="mt-2 md:mt-0">Edit Profile</Button>
+              </Link>
+            )}
       </div>
-      
-      {/* Topics Section */}
-      {user.debateTopics && user.debateTopics.length > 0 && (
-        <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Favorite Debate Topics</h2>
+        <div className="flex flex-wrap gap-2 mb-4">
+            {/* Display user metadata like gender and location if available */}
+            {user.gender && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {user.gender}
+              </span>
+            )}
+            
+            {user.location && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                {user.location}
+              </span>
+            )}
+          </div>
+          {user.bio ? (
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 mb-4">
+              <h2 className="text-sm font-semibold text-gray-700 mb-2">Bio</h2>
+              <p className="text-gray-600">{user.bio}</p>
+            </div>
+          ) : (
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 mb-4 text-center italic text-gray-500">
+              {isCurrentUser ? 'Add a bio to tell others about yourself' : 'This user has not added a bio yet'}
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             {user.debateTopics.map((topic, index) => (
               <span key={index} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
@@ -261,7 +272,35 @@ export default function UserProfilePage() {
             ))}
           </div>
         </div>
-      )}
+    </div>
+
+
+    {/* Section 3: Past Debates Record */}
+    <div className="w-full bg-white p-6 rounded-lg shadow">
+        <h2 className="text-xl font-bold mb-4">Past Debates</h2>
+        {isCurrentUser && (
+            <Link href="/debates/new">
+              <Button variant="gradient" size="sm">
+                Create New Debate
+              </Button>
+            </Link>
+          )}
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="p-3 text-left">Topic</th>
+                <th className="p-3 text-left">Opponent</th>
+                <th className="p-3 text-left">Result</th>
+                <th className="p-3 text-left">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+            </tbody>
+          </table>
+        </div>
+      </div>
       
       {/* Recent Debates Section */}
       <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">

@@ -72,47 +72,6 @@ export const Header: React.FC = () => {
                   My Profile
                 </Link>
               )}
-              {/* New Navigation Links */}
-              <Link
-                href="/faq"
-                className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  pathname === "/faq"
-                    ? "text-purple-700 bg-purple-50"
-                    : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
-                }`}
-              >
-                FAQ
-              </Link>
-              <Link
-                href="/terms"
-                className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  pathname === "/terms"
-                    ? "text-purple-700 bg-purple-50"
-                    : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
-                }`}
-              >
-                Terms
-              </Link>
-              <Link
-                href="/privacy"
-                className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  pathname === "/privacy"
-                    ? "text-purple-700 bg-purple-50"
-                    : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
-                }`}
-              >
-                Privacy
-              </Link>
-              <Link
-                href="/contact"
-                className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  pathname === "/contact"
-                    ? "text-purple-700 bg-purple-50"
-                    : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
-                }`}
-              >
-                Contact
-              </Link>
             </nav>
           </div>
           <div className="hidden md:flex items-center">
@@ -173,7 +132,7 @@ export const Header: React.FC = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                    className="text-black hover:bg-gray-50 hover:text-black"
                   >
                     Login
                   </Button>
@@ -182,7 +141,7 @@ export const Header: React.FC = () => {
                   <Button
                     variant="default"
                     size="sm"
-                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                    className="bg-gradient-to-r border-2 border-black"
                   >
                     Sign Up
                   </Button>
@@ -195,7 +154,7 @@ export const Header: React.FC = () => {
           <div className="flex items-center md:hidden">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-purple-600 hover:bg-purple-50 focus:outline-none"
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-blue-800 hover:bg-purple-50 focus:outline-none"
             >
               {mobileMenuOpen ? (
                 <X className="h-6 w-6" />
@@ -215,8 +174,8 @@ export const Header: React.FC = () => {
               href="/"
               className={`block px-3 py-2 rounded-md text-base font-medium ${
                 pathname === "/"
-                  ? "text-purple-700 bg-purple-50"
-                  : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
+                  ? "text-black bg-gray-50"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               }`}
               onClick={() => setMobileMenuOpen(false)}
             >
@@ -228,8 +187,8 @@ export const Header: React.FC = () => {
                 className={`block px-3 py-2 rounded-md text-base font-medium ${
                   pathname === `/profile/${user?.id}` ||
                   pathname.startsWith("/profile/")
-                    ? "text-purple-700 bg-purple-50"
-                    : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
+                    ? "text-black bg-gray-50"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -241,70 +200,26 @@ export const Header: React.FC = () => {
               href="/debates"
               className={`block px-3 py-2 rounded-md text-base font-medium ${
                 pathname === "/debates"
-                  ? "text-purple-700 bg-purple-50"
-                  : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
+                  ? "text-black bg-gray-50"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               }`}
               onClick={() => setMobileMenuOpen(false)}
             >
               Debates
-            </Link>
-            <Link
-              href="/faq"
-              className={`block px-3 py-2 rounded-md text-base font-medium ${
-                pathname === "/faq"
-                  ? "text-purple-700 bg-purple-50"
-                  : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
-              }`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              FAQ
-            </Link>
-            <Link
-              href="/terms"
-              className={`block px-3 py-2 rounded-md text-base font-medium ${
-                pathname === "/terms"
-                  ? "text-purple-700 bg-purple-50"
-                  : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
-              }`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Terms
-            </Link>
-            <Link
-              href="/privacy"
-              className={`block px-3 py-2 rounded-md text-base font-medium ${
-                pathname === "/privacy"
-                  ? "text-purple-700 bg-purple-50"
-                  : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
-              }`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Privacy
-            </Link>
-            <Link
-              href="/contact"
-              className={`block px-3 py-2 rounded-md text-base font-medium ${
-                pathname === "/contact"
-                  ? "text-purple-700 bg-purple-50"
-                  : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
-              }`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Contact
             </Link>
 
             {isAuthenticated ? (
               <>
                 <Link
                   href="/debates/new"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-purple-700 hover:bg-purple-50"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-indigo-800 hover:bg-purple-50"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   New Debate
                 </Link>
                 <Link
                   href="/profile/edit"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-purple-700 hover:bg-purple-50"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-indigo-800 hover:bg-purple-50"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Settings
@@ -314,7 +229,7 @@ export const Header: React.FC = () => {
                     logout();
                     setMobileMenuOpen(false);
                   }}
-                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-purple-700 hover:bg-purple-50"
+                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-indigo-800 hover:bg-purple-50"
                 >
                   Sign out
                 </button>
@@ -323,14 +238,14 @@ export const Header: React.FC = () => {
               <div className="flex flex-col space-y-2 px-3 py-2">
                 <Link
                   href="/auth/login"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-purple-600 hover:bg-purple-50"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-black hover:bg-purple-50"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Login
                 </Link>
                 <Link
                   href="/auth/signup"
-                  className="block px-3 py-2 rounded-md text-center text-base font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                  className="block px-3 py-2 rounded-md text-center text-base font-medium border-2 border-black"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Sign Up
