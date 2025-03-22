@@ -54,11 +54,6 @@ export const Footer: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-900">Navigation</h3>
             <ul className="mt-4 space-y-3">
               <li>
-                <Link href="/" className="text-gray-500 hover:text-purple-600">
-                  Home
-                </Link>
-              </li>
-              <li>
                 <Link
                   href="/debates"
                   className="text-gray-500 hover:text-purple-600"

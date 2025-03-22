@@ -50,16 +50,6 @@ export const Header: React.FC = () => {
             </div>
             <nav className="hidden md:ml-8 md:flex md:space-x-8">
               <Link
-                href="/"
-                className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  pathname === "/"
-                    ? "text-purple-700 bg-purple-50"
-                    : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
-                }`}
-              >
-                Home
-              </Link>
-              <Link
                   href="/debates"
                   className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                     pathname === "/debates"
@@ -87,15 +77,6 @@ export const Header: React.FC = () => {
           <div className="hidden md:flex items-center">
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
-                <Link href="/debates/new">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-                  >
-                    New Debate
-                  </Button>
-                </Link>
                 <div className="relative" ref={dropdownRef}>
                   <button 
                     className="flex items-center space-x-2 focus:outline-none" 
