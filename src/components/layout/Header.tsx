@@ -62,7 +62,7 @@ export const Header: React.FC = () => {
               <Link
                   href="/debates"
                   className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    pathname === "/"
+                    pathname === "/debates"
                       ? "text-purple-700 bg-purple-50"
                       : "text-gray-600 hover:text-purple-700 hover:bg-purple-50"
                   }`}
