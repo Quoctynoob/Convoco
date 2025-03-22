@@ -110,13 +110,6 @@ export const Header: React.FC = () => {
                   {dropdownOpen && (
                     <div className="absolute right-0 mt-2 w-48 py-2 bg-white rounded-md shadow-lg z-10 border border-gray-100">
                       <Link
-                        href={`/profile/${user?.id}`}
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-indigo-600"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        Profile
-                      </Link>
-                      <Link
                         href="/profile/edit"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-indigo-600"
                         onClick={() => setDropdownOpen(false)}

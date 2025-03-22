@@ -38,68 +38,112 @@ export const getDebateById = async (
   }
 };
 
+/**
+ * Fetch all open debates that are available for joining
+ * @returns Promise<Debate[]> Array of open debates
+ */
 export const getOpenDebates = async (): Promise<Debate[]> => {
   try {
+    console.log("Fetching open debates...");
+    const debatesRef = collection(db, "debates");
+    
+    // Create a query specifically for PENDING debates
     const q = query(
-      collection(db, "debates"),
+      debatesRef,
       where("status", "==", DebateStatus.PENDING),
       orderBy("createdAt", "desc")
     );
-
+    
     const querySnapshot = await getDocs(q);
+    console.log(`Found ${querySnapshot.size} pending debates`);
+    
     const debates: Debate[] = [];
-
     querySnapshot.forEach((doc) => {
-      debates.push({ id: doc.id, ...doc.data() } as Debate);
+      const data = doc.data();
+      debates.push({
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt || Date.now(),
+        updatedAt: data.updatedAt || Date.now(),
+        // Ensure required fields are present even if null
+        opponentId: data.opponentId || null,
+        winner: data.winner || null,
+        forfeitedBy: data.forfeitedBy || null,
+        arguments: data.arguments || [],
+        aiAnalysis: data.aiAnalysis || [],
+      } as Debate);
     });
-
+    
     return debates;
   } catch (error) {
-    console.error("Error getting open debates:", error);
-    throw error;
+    console.error("Error fetching open debates:", error);
+    return [];
   }
 };
 
-export const getUserActiveDebates = async (
-  userId: string
-): Promise<Debate[]> => {
+/**
+ * Get active debates for a specific user
+ * @param userId User ID to fetch debates for
+ * @returns Promise<Debate[]> Array of user's active debates
+ */
+export const getUserActiveDebates = async (userId: string): Promise<Debate[]> => {
   try {
-    // Query debates where user is creator OR opponent AND status is not COMPLETED
-    const creatorQuery = query(
-      collection(db, "debates"),
-      where("creatorId", "==", userId),
-      where("status", "in", [DebateStatus.PENDING, DebateStatus.ACTIVE])
+    console.log(`Fetching active debates for user: ${userId}`);
+    const debatesRef = collection(db, "debates");
+    
+    // Get debates where user is either creator or opponent
+    // and status is either PENDING or ACTIVE
+    const q = query(
+      debatesRef,
+      where("status", "in", [DebateStatus.PENDING, DebateStatus.ACTIVE]),
+      where("creatorId", "==", userId)
     );
-
-    const opponentQuery = query(
-      collection(db, "debates"),
-      where("opponentId", "==", userId),
-      where("status", "in", [DebateStatus.PENDING, DebateStatus.ACTIVE])
+    
+    const q2 = query(
+      debatesRef,
+      where("status", "in", [DebateStatus.ACTIVE]),
+      where("opponentId", "==", userId)
     );
-
-    const [creatorSnapshot, opponentSnapshot] = await Promise.all([
-      getDocs(creatorQuery),
-      getDocs(opponentQuery),
+    
+    // Execute both queries
+    const [creatorDebatesSnapshot, opponentDebatesSnapshot] = await Promise.all([
+      getDocs(q),
+      getDocs(q2)
     ]);
-
+    
+    // Process results from both queries
     const debates: Debate[] = [];
-
-    creatorSnapshot.forEach((doc) => {
-      debates.push({ id: doc.id, ...doc.data() } as Debate);
+    
+    creatorDebatesSnapshot.forEach((doc) => {
+      const data = doc.data();
+      debates.push({
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt || Date.now(),
+        updatedAt: data.updatedAt || Date.now(),
+      } as Debate);
     });
-
-    opponentSnapshot.forEach((doc) => {
-      // Check for duplicates in case user is both creator and opponent somehow
-      if (!debates.some((debate) => debate.id === doc.id)) {
-        debates.push({ id: doc.id, ...doc.data() } as Debate);
+    
+    opponentDebatesSnapshot.forEach((doc) => {
+      // Avoid adding duplicates if a user is somehow both creator and opponent
+      if (!debates.some(d => d.id === doc.id)) {
+        const data = doc.data();
+        debates.push({
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt || Date.now(),
+          updatedAt: data.updatedAt || Date.now(),
+        } as Debate);
       }
     });
-
-    // Sort by updatedAt (most recent first)
-    return debates.sort((a, b) => b.updatedAt - a.updatedAt);
+    
+    // Sort by most recently created
+    debates.sort((a, b) => b.createdAt - a.createdAt);
+    
+    return debates;
   } catch (error) {
-    console.error("Error getting user active debates:", error);
-    throw error;
+    console.error(`Error fetching active debates for user ${userId}:`, error);
+    return [];
   }
 };
 

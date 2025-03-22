@@ -1,6 +1,6 @@
-// src/app/debates/page.tsx
+// src/app/debates/page.tsx - Updated with refresh dependency
 "use client";
-import React, { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useState, Suspense, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { getOpenDebates, getUserActiveDebates } from "@/lib/firebase/firestore";
@@ -26,64 +26,80 @@ function DebatesContent() {
   const searchParams = useSearchParams();
   const refreshParam = searchParams ? searchParams.get('refresh') : null;
 
-  // Fetch open debates
-  useEffect(() => {
-    const fetchDebates = async () => {
-      try {
-        console.log("Fetching open debates...");
-        setLoading(true);
-        // Directly get collection - simpler approach to debug
-        const debates = await getOpenDebates();
-        console.log("Fetched open debates:", debates.length);
-        setOpenDebates(debates);
-        setFilteredDebates(debates);
-      } catch (e) {
-        console.error("Error fetching debates:", e);
-        // Even on error, we should set empty arrays to prevent infinite loading
-        setOpenDebates([]);
-        setFilteredDebates([]);
-      } finally {
-        // Always set loading to false, even if there was an error
-        setLoading(false);
-      }
-    };
-    
-    fetchDebates();
-    
-    // Shorter interval for better user experience but not too frequent
-    const intervalId = setInterval(fetchDebates, 15000);
-    return () => clearInterval(intervalId);
-  }, []);
+  // Create a state to trigger refreshes when needed
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Fetch user's ongoing debates
-  useEffect(() => {
-    const fetchMyDebates = async () => {
-      if (!isAuthenticated || !user) {
-        setMyDebates([]);
-        setLoadingMyDebates(false);
-        return;
+  // Fetch open debates
+  const fetchOpenDebates = useCallback(async () => {
+    try {
+      console.log("Fetching open debates...");
+      setLoading(true);
+      // Get debates with PENDING status
+      const debates = await getOpenDebates();
+      console.log("Fetched open debates:", debates.length);
+      
+      // Log debate details for debugging
+      if (debates.length > 0) {
+        console.log("Debate topics:", debates.map(d => d.topic));
+        console.log("Debate statuses:", debates.map(d => d.status));
       }
       
-      try {
-        setLoadingMyDebates(true);
-        console.log("Fetching debates for user:", user.id);
-        const debates = await getUserActiveDebates(user.id);
-        console.log("Fetched user debates:", debates.length);
-        setMyDebates(debates);
-      } catch (e) {
-        console.error("Error fetching user debates:", e);
-        setMyDebates([]);
-      } finally {
-        setLoadingMyDebates(false);
-      }
-    };
+      setOpenDebates(debates);
+      setFilteredDebates(searchTerm ? 
+        debates.filter(debate => 
+          debate.topic.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          debate.description.toLowerCase().includes(searchTerm.toLowerCase())
+        ) : 
+        debates
+      );
+    } catch (e) {
+      console.error("Error fetching debates:", e);
+      // Even on error, we should set empty arrays to prevent infinite loading
+      setOpenDebates([]);
+      setFilteredDebates([]);
+    } finally {
+      // Always set loading to false, even if there was an error
+      setLoading(false);
+    }
+  }, [searchTerm]);
+  
+  useEffect(() => {
+    fetchOpenDebates();
     
+    // Shorter interval for better user experience but not too frequent
+    const intervalId = setInterval(fetchOpenDebates, 15000);
+    return () => clearInterval(intervalId);
+  }, [fetchOpenDebates, refreshTrigger, refreshParam]); // Add refreshTrigger as dependency
+
+  // Fetch user's ongoing debates
+  const fetchMyDebates = useCallback(async () => {
+    if (!isAuthenticated || !user) {
+      setMyDebates([]);
+      setLoadingMyDebates(false);
+      return;
+    }
+    
+    try {
+      setLoadingMyDebates(true);
+      console.log("Fetching debates for user:", user.id);
+      const debates = await getUserActiveDebates(user.id);
+      console.log("Fetched user debates:", debates.length);
+      setMyDebates(debates);
+    } catch (e) {
+      console.error("Error fetching user debates:", e);
+      setMyDebates([]);
+    } finally {
+      setLoadingMyDebates(false);
+    }
+  }, [isAuthenticated, user]);
+  
+  useEffect(() => {
     fetchMyDebates();
     
     // Refresh user debates periodically
     const intervalId = setInterval(fetchMyDebates, 15000);
     return () => clearInterval(intervalId);
-  }, [user, isAuthenticated, refreshParam]);
+  }, [fetchMyDebates, refreshTrigger, refreshParam]); // Add refreshTrigger as dependency
 
   // Filter debates based on search term
   useEffect(() => {
@@ -106,21 +122,23 @@ function DebatesContent() {
     router.push(`/debates/${debateId}`);
   };
 
-  // Temporary function to load all debates no matter what - for debugging
-  const loadAllDebates = async () => {
-    try {
-      setLoading(true);
-      console.log("Manually fetching all debates...");
-      const debates = await getOpenDebates();
-      console.log("Fetched debates:", debates);
-      setOpenDebates(debates);
-      setFilteredDebates(debates);
-    } catch (e) {
-      console.error("Error in manual fetch:", e);
-    } finally {
-      setLoading(false);
+  // Refresh all debates
+  const refreshAllDebates = () => {
+    setRefreshTrigger(prev => prev + 1); // Increment to trigger useEffect
+    fetchOpenDebates();
+    if (user) {
+      fetchMyDebates();
     }
   };
+
+  // After creating a debate, listen for changes
+  useEffect(() => {
+    // Check URL for a 'created' parameter indicating a new debate was created
+    if (searchParams && searchParams.get('created')) {
+      console.log("New debate created, refreshing debates...");
+      refreshAllDebates();
+    }
+  }, [searchParams]);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto px-4 animate-fade-in">
@@ -201,11 +219,11 @@ function DebatesContent() {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">Available Debate Rooms</h2>
                 
-                {/* Debug refresh button */}
+                {/* Refresh button */}
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={loadAllDebates} 
+                  onClick={refreshAllDebates} 
                   disabled={loading}
                 >
                   {loading ? 'Refreshing...' : 'Refresh Debates'}
@@ -317,23 +335,12 @@ function DebatesContent() {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">My Ongoing Debates</h2>
                 
-                {/* Debug refresh button */}
+                {/* Refresh button */}
                 {isAuthenticated && (
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={() => {
-                      if (user) {
-                        setLoadingMyDebates(true);
-                        getUserActiveDebates(user.id).then(debates => {
-                          setMyDebates(debates);
-                          setLoadingMyDebates(false);
-                        }).catch(e => {
-                          console.error("Error refreshing user debates:", e);
-                          setLoadingMyDebates(false);
-                        });
-                      }
-                    }} 
+                    onClick={fetchMyDebates}
                     disabled={loadingMyDebates}
                   >
                     {loadingMyDebates ? 'Refreshing...' : 'Refresh'}

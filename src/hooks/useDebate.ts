@@ -52,7 +52,7 @@ export const useDebateCreation = () => {
         description,
         creatorId,
         creatorSide: side,
-        status: DebateStatus.PENDING,
+        status: DebateStatus.PENDING,  // Make sure it's set to PENDING
         rounds,
         currentRound: 0,
         arguments: [],
@@ -60,10 +60,13 @@ export const useDebateCreation = () => {
       };
       const debateId = await createDebate(newDebate);
       console.log("Debate created with ID:", debateId);
+      
       // Slight delay to ensure Firestore is updated
       setTimeout(() => {
-        router.push(`/debates/${debateId}`);
+        // Add created=true parameter to refresh debates when redirected back
+        router.push(`/debates/${debateId}?created=true`);
       }, 500);
+      
       return debateId;
     } catch (e) {
       console.error("Error in createNewDebate:", e);
