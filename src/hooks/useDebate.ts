@@ -36,7 +36,6 @@ export const useDebateCreation = () => {
   ) => {
     setLoading(true);
     setError(null);
-
     console.log("Creating new debate with:", {
       topic,
       description,
@@ -44,12 +43,10 @@ export const useDebateCreation = () => {
       creatorId,
       side,
     });
-
     try {
       if (!creatorId) {
         throw new Error("User ID is required to create a debate");
       }
-
       const newDebate: Omit<Debate, "id" | "createdAt" | "updatedAt"> = {
         topic,
         description,
@@ -61,15 +58,12 @@ export const useDebateCreation = () => {
         arguments: [],
         aiAnalysis: [],
       };
-
       const debateId = await createDebate(newDebate);
       console.log("Debate created with ID:", debateId);
-
       // Slight delay to ensure Firestore is updated
       setTimeout(() => {
         router.push(`/debates/${debateId}`);
       }, 500);
-
       return debateId;
     } catch (e) {
       console.error("Error in createNewDebate:", e);
@@ -118,15 +112,19 @@ export const useDebate = (debateId: string) => {
         setLoading(false);
       }
     );
+
     // Load debate arguments
     const loadArguments = async () => {
       try {
+        // Get all arguments for the debate without complex ordering
         const args = await getDebateArguments(debateId);
+        // The sorting is now handled inside getDebateArguments
         setDebateArguments(args);
       } catch (e) {
         console.error("Error loading arguments:", e);
       }
     };
+
     loadArguments();
     return () => unsubscribe();
   }, [debateId]);
@@ -207,16 +205,13 @@ export const useDebate = (debateId: string) => {
       if (side === "opponent" && currentRound >= debate.rounds) {
         // Debate is complete, determine winner
         const allArguments = [...debateArguments, argument];
-
         // Fixed part - Ensure aiAnalysis is treated as an array of AIAnalysis objects
         // If debate.aiAnalysis is an array of string IDs, we need to handle that differently
         const analysisArray: AIAnalysis[] = [];
-
         // Handle the case where aiAnalysis might not exist or be empty
         if (analysis) {
           analysisArray.push(analysis);
         }
-
         const result = await determineDebateWinner(
           debate,
           allArguments,
@@ -224,7 +219,6 @@ export const useDebate = (debateId: string) => {
           creator,
           opponent
         );
-
         updates = {
           status: DebateStatus.COMPLETED,
           winner: result.winnerId,

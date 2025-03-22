@@ -1,182 +1,66 @@
 // src/lib/firebase/firestore.ts
 import {
   collection,
-  query,
-  where,
+  doc,
   getDocs,
   getDoc,
-  doc,
+  setDoc,
   addDoc,
   updateDoc,
-  deleteDoc,
+  query,
+  where,
   orderBy,
   limit,
-  startAfter,
-  DocumentSnapshot,
+  Timestamp,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { Debate, DebateStatus } from "@/types/Debate";
 import { Argument, AIAnalysis } from "@/types/Argument";
-import { User } from "@/types/User";
 
-// Debates
+// Debate Operations
 export const createDebate = async (
   debate: Omit<Debate, "id" | "createdAt" | "updatedAt">
-) => {
+): Promise<string> => {
   try {
-    console.log("Creating debate with data:", JSON.stringify(debate, null, 2));
-
-    // Make sure required fields are present
-    if (!debate.creatorId) {
-      console.error("Missing creatorId in debate data");
-      throw new Error("Creator ID is required");
-    }
-
-    // Make sure the debate object has the creatorSide field
-    if (!debate.creatorSide) {
-      debate.creatorSide = "affirmative"; // Default to affirmative if not specified
-    }
-
-    // Make sure status is set correctly
-    if (!debate.status) {
-      debate.status = DebateStatus.PENDING;
-    }
-
-    // Ensure arrays are initialized
-    if (!debate.arguments) {
-      debate.arguments = [];
-    }
-
-    if (!debate.aiAnalysis) {
-      debate.aiAnalysis = [];
-    }
-
-    // Create the debate document
-    const debateRef = await addDoc(collection(db, "debates"), {
+    const debateRef = collection(db, "debates");
+    const newDebate = {
       ...debate,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    });
-
-    console.log("Debate created successfully with ID:", debateRef.id);
-
-    return debateRef.id;
+    };
+    const docRef = await addDoc(debateRef, newDebate);
+    return docRef.id;
   } catch (error) {
     console.error("Error creating debate:", error);
     throw error;
   }
 };
 
-export const getDebateById = async (
-  debateId: string
-): Promise<Debate | null> => {
+export const getDebateById = async (id: string): Promise<Debate | null> => {
   try {
-    const debateDoc = await getDoc(doc(db, "debates", debateId));
-    if (debateDoc.exists()) {
-      return { id: debateDoc.id, ...debateDoc.data() } as Debate;
+    const debateRef = doc(db, "debates", id);
+    const debateSnap = await getDoc(debateRef);
+
+    if (debateSnap.exists()) {
+      return { id: debateSnap.id, ...debateSnap.data() } as Debate;
+    } else {
+      return null;
     }
-    return null;
   } catch (error) {
     console.error("Error getting debate:", error);
     throw error;
   }
 };
 
-export const getOpenDebates = async () => {
+export const updateDebate = async (
+  id: string,
+  updates: Partial<Debate>
+): Promise<void> => {
   try {
-    console.log("Getting open debates with status: PENDING");
-
-    // Simplify the query to ensure it works
-    const simpleQuery = query(
-      collection(db, "debates"),
-      where("status", "==", DebateStatus.PENDING)
-    );
-
-    const querySnapshot = await getDocs(simpleQuery);
-
-    console.log(`Found ${querySnapshot.size} open debates with pending status`);
-
-    const debates = querySnapshot.docs.map((doc) => {
-      const data = doc.data();
-      // Log each debate for debugging
-      console.log(`Debate ${doc.id}:`, { id: doc.id, ...data });
-      return { id: doc.id, ...data } as Debate;
-    });
-
-    // If no debates are found with the query, try getting all debates as a fallback
-    if (debates.length === 0) {
-      console.log(
-        "No debates found with query, will log all debates in database:"
-      );
-      await getAllDebates();
-    }
-
-    return debates;
-  } catch (error) {
-    console.error("Error getting open debates:", error);
-
-    // Instead of returning an empty array immediately, try getting all debates as a fallback
-    console.log("Trying fallback approach to get ALL debates:");
-    try {
-      const allDebates = await getAllDebates();
-      // Filter client-side instead
-      return allDebates.filter(
-        (debate) => debate.status === DebateStatus.PENDING
-      );
-    } catch (fallbackError) {
-      console.error("Fallback approach also failed:", fallbackError);
-      return [];
-    }
-  }
-};
-
-export const getUserDebates = async (
-  userId: string,
-  lastDebate?: DocumentSnapshot,
-  pageSize: number = 10
-) => {
-  try {
-    let q = query(
-      collection(db, "debates"),
-      where("creatorId", "==", userId),
-      orderBy("createdAt", "desc"),
-      limit(pageSize)
-    );
-    if (lastDebate) {
-      q = query(q, startAfter(lastDebate));
-    }
-    const querySnapshot = await getDocs(q);
-    const createdDebates = querySnapshot.docs.map(
-      (doc) => ({ id: doc.id, ...doc.data() } as Debate)
-    );
-    // Get debates where user is an opponent
-    q = query(
-      collection(db, "debates"),
-      where("opponentId", "==", userId),
-      orderBy("createdAt", "desc"),
-      limit(pageSize)
-    );
-    if (lastDebate) {
-      q = query(q, startAfter(lastDebate));
-    }
-    const opponentSnapshot = await getDocs(q);
-    const participatedDebates = opponentSnapshot.docs.map(
-      (doc) => ({ id: doc.id, ...doc.data() } as Debate)
-    );
-    return [...createdDebates, ...participatedDebates].sort(
-      (a, b) => b.updatedAt - a.updatedAt
-    );
-  } catch (error) {
-    console.error("Error getting user debates:", error);
-    throw error;
-  }
-};
-
-export const updateDebate = async (debateId: string, data: Partial<Debate>) => {
-  try {
-    const debateRef = doc(db, "debates", debateId);
+    const debateRef = doc(db, "debates", id);
     await updateDoc(debateRef, {
-      ...data,
+      ...updates,
       updatedAt: Date.now(),
     });
   } catch (error) {
@@ -185,236 +69,58 @@ export const updateDebate = async (debateId: string, data: Partial<Debate>) => {
   }
 };
 
-// Arguments
-export const addArgument = async (
-  argument: Omit<Argument, "id" | "createdAt">
-) => {
+export const getOpenDebates = async (): Promise<Debate[]> => {
   try {
-    const argumentRef = await addDoc(collection(db, "arguments"), {
-      ...argument,
-      createdAt: Date.now(),
-    });
-    return argumentRef.id;
-  } catch (error) {
-    console.error("Error adding argument:", error);
-    throw error;
-  }
-};
-
-export const getDebateArguments = async (
-  debateId: string
-): Promise<Argument[]> => {
-  try {
+    const debatesRef = collection(db, "debates");
     const q = query(
-      collection(db, "arguments"),
-      where("debateId", "==", debateId),
-      orderBy("round"),
-      orderBy("createdAt")
+      debatesRef,
+      where("status", "==", "pending"),
+      orderBy("createdAt", "desc")
     );
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(
-      (doc) => ({ id: doc.id, ...doc.data() } as Argument)
-    );
-  } catch (error) {
-    console.error("Error getting debate arguments:", error);
-    throw error;
-  }
-};
-
-// AI Analysis
-export const addAIAnalysis = async (
-  analysis: Omit<AIAnalysis, "id" | "createdAt">
-) => {
-  try {
-    const analysisRef = await addDoc(collection(db, "analyses"), {
-      ...analysis,
-      createdAt: Date.now(),
+    const snapshot = await getDocs(q);
+    const debates: Debate[] = [];
+    snapshot.forEach((doc) => {
+      debates.push({ id: doc.id, ...doc.data() } as Debate);
     });
-    return analysisRef.id;
+    return debates;
   } catch (error) {
-    console.error("Error adding AI analysis:", error);
+    console.error("Error getting open debates:", error);
     throw error;
   }
 };
 
-export const getArgumentAnalysis = async (
-  argumentId: string
-): Promise<AIAnalysis | null> => {
+export const getUserDebates = async (userId: string): Promise<Debate[]> => {
   try {
-    const q = query(
-      collection(db, "analyses"),
-      where("argumentId", "==", argumentId),
-      limit(1)
-    );
-    const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-      const doc = querySnapshot.docs[0];
-      const data = doc.data();
+    const debatesRef = collection(db, "debates");
 
-      // Create a proper AIAnalysis object with all required fields
-      const analysis: AIAnalysis = {
-        id: doc.id,
-        argumentId: data.argumentId || "",
-        userId: data.userId || "",
-        round: data.round || 0,
-        content: data.content || "",
-        factCheck: data.factCheck || [],
-        score: data.score || 0,
-        suggestedCounterpoints: data.suggestedCounterpoints || [],
-        createdAt: data.createdAt || Date.now(),
-      };
+    // Get debates where user is creator
+    const creatorQuery = query(debatesRef, where("creatorId", "==", userId));
+    const creatorSnapshot = await getDocs(creatorQuery);
 
-      return analysis;
-    }
-    return null;
-  } catch (error) {
-    console.error("Error getting argument analysis:", error);
-    throw error;
-  }
-};
+    // Get debates where user is opponent
+    const opponentQuery = query(debatesRef, where("opponentId", "==", userId));
+    const opponentSnapshot = await getDocs(opponentQuery);
 
-// Update user stats
-export const updateUserStats = async (userId: string, won: boolean) => {
-  try {
-    const userRef = doc(db, "users", userId);
-    const userDoc = await getDoc(userRef);
-    if (userDoc.exists()) {
-      const userData = userDoc.data() as User;
-      const stats = userData.stats || { wins: 0, losses: 0, totalDebates: 0 };
-      await updateDoc(userRef, {
-        stats: {
-          wins: won ? stats.wins + 1 : stats.wins,
-          losses: won ? stats.losses : stats.losses + 1,
-          totalDebates: stats.totalDebates + 1,
-        },
-        updatedAt: Date.now(),
-      });
-    }
-  } catch (error) {
-    console.error("Error updating user stats:", error);
-    throw error;
-  }
-};
+    const debates: Debate[] = [];
 
-export const leaveDebate = async (debateId: string, userId: string) => {
-  try {
-    const debateRef = doc(db, "debates", debateId);
-    const debateDoc = await getDoc(debateRef);
+    // Add creator debates
+    creatorSnapshot.forEach((doc) => {
+      debates.push({ id: doc.id, ...doc.data() } as Debate);
+    });
 
-    if (!debateDoc.exists()) {
-      throw new Error("Debate not found");
-    }
-
-    const debate = { id: debateDoc.id, ...debateDoc.data() } as Debate;
-
-    // Check if the user is the creator or opponent
-    if (debate.creatorId === userId) {
-      // If the creator leaves and there's no opponent, mark as abandoned
-      if (!debate.opponentId) {
-        await updateDoc(debateRef, {
-          status: DebateStatus.ABANDONED,
-          updatedAt: Date.now(),
-        });
+    // Add opponent debates (checking for duplicates)
+    opponentSnapshot.forEach((doc) => {
+      if (!debates.some((debate) => debate.id === doc.id)) {
+        debates.push({ id: doc.id, ...doc.data() } as Debate);
       }
-      // If there is an opponent, transfer ownership if debate is still pending
-      else if (debate.status === DebateStatus.PENDING) {
-        await updateDoc(debateRef, {
-          creatorId: debate.opponentId,
-          opponentId: null,
-          updatedAt: Date.now(),
-        });
-      }
-      // If debate is active or completed, it stays as is - historical record
-    }
-    // If opponent leaves
-    else if (debate.opponentId === userId) {
-      // Remove opponent from the debate
-      await updateDoc(debateRef, {
-        opponentId: null,
-        status: DebateStatus.PENDING, // Reset to pending to allow new opponents
-        updatedAt: Date.now(),
-      });
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Error leaving debate:", error);
-    throw error;
-  }
-};
-
-export const forfeitDebate = async (debateId: string, userId: string) => {
-  try {
-    const debateRef = doc(db, "debates", debateId);
-    const debateDoc = await getDoc(debateRef);
-
-    if (!debateDoc.exists()) {
-      throw new Error("Debate not found");
-    }
-
-    const debate = { id: debateDoc.id, ...debateDoc.data() } as Debate;
-
-    // Check if the user is a participant
-    if (debate.creatorId !== userId && debate.opponentId !== userId) {
-      throw new Error("User is not a participant in this debate");
-    }
-
-    // If debate is not active, users cannot forfeit
-    if (debate.status !== DebateStatus.ACTIVE) {
-      throw new Error("Only active debates can be forfeited");
-    }
-
-    // Determine the winner (opponent of the user who forfeits)
-    const winnerId =
-      debate.creatorId === userId ? debate.opponentId : debate.creatorId;
-
-    // Make sure winnerId exists (as a type safety check)
-    if (!winnerId) {
-      throw new Error("Could not determine winner ID");
-    }
-
-    // Update debate status and winner
-    await updateDoc(debateRef, {
-      status: DebateStatus.COMPLETED,
-      winner: winnerId,
-      forfeitedBy: userId,
-      currentTurn: null,
-      updatedAt: Date.now(),
     });
 
-    // Update user stats - only update if we have valid user IDs
-    await updateUserStats(userId, false); // The user who forfeited loses
-    await updateUserStats(winnerId, true); // The other user wins
+    // Sort debates by createdAt date (newest first)
+    debates.sort((a, b) => b.createdAt - a.createdAt);
 
-    return true;
+    return debates;
   } catch (error) {
-    console.error("Error forfeiting debate:", error);
-    throw error;
-  }
-};
-
-// Function to check if a debate room should be deleted
-// This would be called by a Cloud Function or scheduled task
-export const cleanupAbandonedDebates = async () => {
-  try {
-    // Get debates that have been abandoned for more than 24 hours
-    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-
-    const q = query(
-      collection(db, "debates"),
-      where("status", "==", DebateStatus.ABANDONED),
-      where("updatedAt", "<", oneDayAgo)
-    );
-
-    const querySnapshot = await getDocs(q);
-
-    // Delete each abandoned debate
-    const deletePromises = querySnapshot.docs.map((doc) => deleteDoc(doc.ref));
-    await Promise.all(deletePromises);
-
-    return querySnapshot.docs.length; // Return number of deleted debates
-  } catch (error) {
-    console.error("Error cleaning up abandoned debates:", error);
+    console.error("Error getting user debates:", error);
     throw error;
   }
 };
@@ -423,74 +129,202 @@ export const getUserActiveDebates = async (
   userId: string
 ): Promise<Debate[]> => {
   try {
-    console.log("Fetching active debates for userId:", userId);
+    const debatesRef = collection(db, "debates");
 
-    if (!userId) {
-      console.error("getUserActiveDebates called with empty userId");
-      return [];
-    }
-
-    // Get debates where user is creator
+    // Get active debates where user is creator
     const creatorQuery = query(
-      collection(db, "debates"),
+      debatesRef,
       where("creatorId", "==", userId),
-      where("status", "in", [DebateStatus.PENDING, DebateStatus.ACTIVE])
+      where("status", "in", [DebateStatus.ACTIVE, DebateStatus.PENDING])
     );
+    const creatorSnapshot = await getDocs(creatorQuery);
 
-    // Get debates where user is opponent
+    // Get active debates where user is opponent
     const opponentQuery = query(
-      collection(db, "debates"),
+      debatesRef,
       where("opponentId", "==", userId),
-      where("status", "in", [DebateStatus.PENDING, DebateStatus.ACTIVE])
+      where("status", "in", [DebateStatus.ACTIVE, DebateStatus.PENDING])
     );
+    const opponentSnapshot = await getDocs(opponentQuery);
 
-    // Execute both queries
-    const [creatorSnapshot, opponentSnapshot] = await Promise.all([
-      getDocs(creatorQuery),
-      getDocs(opponentQuery),
-    ]);
+    const debates: Debate[] = [];
 
-    console.log("Creator debates found:", creatorSnapshot.size);
-    console.log("Opponent debates found:", opponentSnapshot.size);
-
-    // Combine results
-    const creatorDebates = creatorSnapshot.docs.map((doc) => {
-      console.log("Creator debate data:", doc.id, doc.data());
-      return { id: doc.id, ...doc.data() } as Debate;
+    // Add creator debates
+    creatorSnapshot.forEach((doc) => {
+      debates.push({ id: doc.id, ...doc.data() } as Debate);
     });
 
-    const opponentDebates = opponentSnapshot.docs.map((doc) => {
-      console.log("Opponent debate data:", doc.id, doc.data());
-      return { id: doc.id, ...doc.data() } as Debate;
+    // Add opponent debates (checking for duplicates)
+    opponentSnapshot.forEach((doc) => {
+      if (!debates.some((debate) => debate.id === doc.id)) {
+        debates.push({ id: doc.id, ...doc.data() } as Debate);
+      }
     });
 
-    // Combine and sort by most recently updated
-    const allDebates = [...creatorDebates, ...opponentDebates].sort(
-      (a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)
-    );
+    // Sort debates by updatedAt date (most recently active first)
+    debates.sort((a, b) => b.updatedAt - a.updatedAt);
 
-    console.log("Total active debates found:", allDebates.length);
-    return allDebates;
+    return debates;
   } catch (error) {
-    console.error("Error getting user's active debates:", error);
-    return [];
+    console.error("Error getting user active debates:", error);
+    throw error;
   }
 };
 
-export const getAllDebates = async () => {
+export const leaveDebate = async (
+  debateId: string,
+  userId: string
+): Promise<void> => {
   try {
-    console.log("Getting ALL debates (for debugging)");
+    const debateRef = doc(db, "debates", debateId);
+    const debateSnap = await getDoc(debateRef);
 
-    const querySnapshot = await getDocs(collection(db, "debates"));
+    if (!debateSnap.exists()) {
+      throw new Error("Debate not found");
+    }
 
-    console.log(`Found ${querySnapshot.size} total debates in the database`);
+    const debate = { id: debateSnap.id, ...debateSnap.data() } as Debate;
 
-    return querySnapshot.docs.map((doc) => {
-      console.log(`Debate ${doc.id}:`, doc.data());
-      return { id: doc.id, ...doc.data() } as Debate;
-    });
+    // Check if user is creator or opponent
+    const isCreator = debate.creatorId === userId;
+    const isOpponent = debate.opponentId === userId;
+
+    if (!isCreator && !isOpponent) {
+      throw new Error("User is not a participant in this debate");
+    }
+
+    // If debate is active, mark it as forfeited
+    if (debate.status === DebateStatus.ACTIVE) {
+      // Set the winner as the other participant
+      const winner = isCreator ? debate.opponentId : debate.creatorId;
+
+      await updateDoc(debateRef, {
+        status: DebateStatus.COMPLETED,
+        winner,
+        forfeitedBy: userId,
+        updatedAt: Date.now(),
+      });
+    }
+    // If debate is pending and user is creator, delete or mark as cancelled
+    else if (debate.status === DebateStatus.PENDING && isCreator) {
+      // For now, just mark it as cancelled rather than deleting
+      await updateDoc(debateRef, {
+        status: DebateStatus.CANCELLED,
+        updatedAt: Date.now(),
+      });
+    }
+    // If pending and user is opponent (rare case), just remove them
+    else if (debate.status === DebateStatus.PENDING && isOpponent) {
+      await updateDoc(debateRef, {
+        opponentId: null,
+        updatedAt: Date.now(),
+      });
+    }
   } catch (error) {
-    console.error("Error getting all debates:", error);
-    return [];
+    console.error("Error leaving debate:", error);
+    throw error;
+  }
+};
+
+// Argument Operations
+export const addArgument = async (
+  argument: Omit<Argument, "id" | "createdAt">
+): Promise<string> => {
+  try {
+    const argumentsRef = collection(db, "arguments");
+    const newArgument = {
+      ...argument,
+      createdAt: Date.now(),
+    };
+    const docRef = await addDoc(argumentsRef, newArgument);
+    return docRef.id;
+  } catch (error) {
+    console.error("Error adding argument:", error);
+    throw error;
+  }
+};
+
+export const getDebateArguments = async (
+  debateId: string,
+  useOrdering = false
+) => {
+  try {
+    const argumentsRef = collection(db, "arguments");
+    let q;
+
+    if (useOrdering) {
+      // Original query with ordering (requires composite index)
+      q = query(
+        argumentsRef,
+        where("debateId", "==", debateId),
+        orderBy("createdAt", "asc")
+      );
+    } else {
+      // Simplified query (no composite index needed)
+      q = query(argumentsRef, where("debateId", "==", debateId));
+    }
+
+    const snapshot = await getDocs(q);
+    const argumentList: Argument[] = [];
+    snapshot.forEach((doc) => {
+      argumentList.push({
+        id: doc.id,
+        ...doc.data(),
+      } as Argument);
+    });
+
+    // If not using ordering in the query, sort the results client-side
+    if (!useOrdering) {
+      argumentList.sort((a, b) => a.createdAt - b.createdAt);
+    }
+
+    return argumentList;
+  } catch (error) {
+    console.error("Error getting debate arguments:", error);
+    throw error;
+  }
+};
+
+// AI Analysis Operations
+export const addAnalysis = async (
+  analysis: Omit<AIAnalysis, "id" | "createdAt">
+): Promise<string> => {
+  try {
+    const analysisRef = collection(db, "analysis");
+    const newAnalysis = {
+      ...analysis,
+      createdAt: Date.now(),
+    };
+    const docRef = await addDoc(analysisRef, newAnalysis);
+    return docRef.id;
+  } catch (error) {
+    console.error("Error adding analysis:", error);
+    throw error;
+  }
+};
+
+export const getArgumentAnalysis = async (
+  argumentId: string
+): Promise<AIAnalysis | null> => {
+  try {
+    const analysisRef = collection(db, "analysis");
+    const q = query(
+      analysisRef,
+      where("argumentId", "==", argumentId),
+      limit(1)
+    );
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      return null;
+    }
+
+    return {
+      id: snapshot.docs[0].id,
+      ...snapshot.docs[0].data(),
+    } as AIAnalysis;
+  } catch (error) {
+    console.error("Error getting argument analysis:", error);
+    throw error;
   }
 };

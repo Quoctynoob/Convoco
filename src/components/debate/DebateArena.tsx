@@ -19,13 +19,7 @@ import {
   getDebateArguments,
 } from "@/lib/firebase/firestore";
 import { analyzeArgument } from "@/lib/gemini/api";
-import {
-  onSnapshot,
-  collection,
-  query,
-  where,
-  orderBy,
-} from "firebase/firestore";
+import { onSnapshot, collection, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase/firebase";
 
 interface DebateArenaProps {
@@ -66,12 +60,12 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
   useEffect(() => {
     if (!debate.id) return;
 
-    // Create a query to listen for debate arguments
+    // Create a simpler query to listen for debate arguments
     const argumentsRef = collection(db, "arguments");
     const q = query(
       argumentsRef,
-      where("debateId", "==", debate.id),
-      orderBy("createdAt", "asc")
+      where("debateId", "==", debate.id)
+      // Remove the orderBy clause temporarily
     );
 
     // Set up real-time listener
@@ -91,7 +85,8 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
             createdAt: data.createdAt,
           });
         });
-
+        // Sort them client-side instead
+        argumentsList.sort((a, b) => a.createdAt - b.createdAt);
         setDebateArguments(argumentsList);
         console.log(
           "Real-time arguments update received:",
@@ -351,7 +346,6 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
         />
       );
     }
-
     return (
       <div className="space-y-8">
         {/* Round indicators */}
@@ -391,7 +385,6 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
             </div>
           </div>
         )}
-
         {/* Arguments and analyses */}
         {debateArguments.length > 0 ? (
           <div className="space-y-8">
@@ -401,7 +394,6 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
               );
               const isCreatorArgument = argument.userId === creator.id;
               const argUser = isCreatorArgument ? creator : opponent;
-
               return (
                 <div key={argument.id} className="space-y-4">
                   <ArgumentDisplay
@@ -431,7 +423,6 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
             </p>
           </div>
         )}
-
         {debate.status === DebateStatus.ACTIVE && isMyTurn && (
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
             <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-indigo-50">
@@ -454,7 +445,6 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
             </div>
           </div>
         )}
-
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-md p-4 mt-4">
             <p className="text-sm text-red-700">{error}</p>
