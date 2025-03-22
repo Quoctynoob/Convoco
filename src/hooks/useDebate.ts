@@ -36,22 +36,39 @@ export const useDebateCreation = () => {
   ) => {
     setLoading(true);
     setError(null);
+    
+    console.log("Creating new debate with:", { 
+      topic, description, rounds, creatorId, side 
+    });
+    
     try {
+      if (!creatorId) {
+        throw new Error("User ID is required to create a debate");
+      }
+      
       const newDebate: Omit<Debate, "id" | "createdAt" | "updatedAt"> = {
         topic,
         description,
         creatorId,
-        creatorSide: side,  // Add this field
+        creatorSide: side,
         status: DebateStatus.PENDING,
         rounds,
         currentRound: 0,
         arguments: [],
         aiAnalysis: [],
       };
+      
       const debateId = await createDebate(newDebate);
-      router.push(`/debates/${debateId}`);
+      console.log("Debate created with ID:", debateId);
+      
+      // Slight delay to ensure Firestore is updated
+      setTimeout(() => {
+        router.push(`/debates/${debateId}`);
+      }, 500);
+      
       return debateId;
     } catch (e) {
+      console.error("Error in createNewDebate:", e);
       const errorMessage =
         e instanceof Error ? e.message : "Unknown error creating debate";
       setError(errorMessage);

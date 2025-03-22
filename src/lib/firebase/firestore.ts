@@ -24,17 +24,42 @@ export const createDebate = async (
   debate: Omit<Debate, "id" | "createdAt" | "updatedAt">
 ) => {
   try {
+    console.log("Creating debate with data:", JSON.stringify(debate, null, 2));
+    
+    // Make sure required fields are present
+    if (!debate.creatorId) {
+      console.error("Missing creatorId in debate data");
+      throw new Error("Creator ID is required");
+    }
+    
     // Make sure the debate object has the creatorSide field
     if (!debate.creatorSide) {
       debate.creatorSide = "affirmative"; // Default to affirmative if not specified
     }
     
+    // Make sure status is set correctly
+    if (!debate.status) {
+      debate.status = DebateStatus.PENDING;
+    }
+    
+    // Ensure arrays are initialized
+    if (!debate.arguments) {
+      debate.arguments = [];
+    }
+    
+    if (!debate.aiAnalysis) {
+      debate.aiAnalysis = [];
+    }
+    
+    // Create the debate document
     const debateRef = await addDoc(collection(db, "debates"), {
       ...debate,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-
+    
+    console.log("Debate created successfully with ID:", debateRef.id);
+    
     return debateRef.id;
   } catch (error) {
     console.error("Error creating debate:", error);
@@ -338,5 +363,61 @@ export const cleanupAbandonedDebates = async () => {
   } catch (error) {
     console.error("Error cleaning up abandoned debates:", error);
     throw error;
+  }
+};
+
+export const getUserActiveDebates = async (userId: string): Promise<Debate[]> => {
+  try {
+    console.log("Fetching active debates for userId:", userId);
+    
+    if (!userId) {
+      console.error("getUserActiveDebates called with empty userId");
+      return [];
+    }
+    
+    // Get debates where user is creator
+    const creatorQuery = query(
+      collection(db, "debates"),
+      where("creatorId", "==", userId),
+      where("status", "in", [DebateStatus.PENDING, DebateStatus.ACTIVE])
+    );
+    
+    // Get debates where user is opponent
+    const opponentQuery = query(
+      collection(db, "debates"),
+      where("opponentId", "==", userId),
+      where("status", "in", [DebateStatus.PENDING, DebateStatus.ACTIVE])
+    );
+    
+    // Execute both queries
+    const [creatorSnapshot, opponentSnapshot] = await Promise.all([
+      getDocs(creatorQuery),
+      getDocs(opponentQuery)
+    ]);
+    
+    console.log("Creator debates found:", creatorSnapshot.size);
+    console.log("Opponent debates found:", opponentSnapshot.size);
+    
+    // Combine results
+    const creatorDebates = creatorSnapshot.docs.map(doc => {
+      console.log("Creator debate data:", doc.id, doc.data());
+      return { id: doc.id, ...doc.data() } as Debate;
+    });
+    
+    const opponentDebates = opponentSnapshot.docs.map(doc => {
+      console.log("Opponent debate data:", doc.id, doc.data());
+      return { id: doc.id, ...doc.data() } as Debate;
+    });
+    
+    // Combine and sort by most recently updated
+    const allDebates = [...creatorDebates, ...opponentDebates].sort(
+      (a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)
+    );
+    
+    console.log("Total active debates found:", allDebates.length);
+    return allDebates;
+  } catch (error) {
+    console.error("Error getting user's active debates:", error);
+    return [];
   }
 };
