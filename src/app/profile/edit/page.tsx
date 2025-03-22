@@ -1,22 +1,28 @@
 // src/app/profile/edit/page.tsx
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/Button';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/Card';
-import { useAuth } from '@/hooks/useAuth';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase/firebase';
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/Button";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/Card";
+import { useAuth } from "@/hooks/useAuth";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase/firebase";
 
 export default function EditProfilePage() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
-  
-  const [username, setUsername] = useState('');
-  const [bio, setBio] = useState('');
+
+  const [username, setUsername] = useState("");
+  const [bio, setBio] = useState("");
   const [debateTopics, setDebateTopics] = useState<string[]>([]);
-  const [newTopic, setNewTopic] = useState('');
+  const [newTopic, setNewTopic] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -24,15 +30,15 @@ export default function EditProfilePage() {
   // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push('/auth/login');
+      router.push("/auth/login");
     }
   }, [isAuthenticated, authLoading, router]);
 
   // Load user data when available
   useEffect(() => {
     if (user) {
-      setUsername(user.username || '');
-      setBio(user.bio || '');
+      setUsername(user.username || "");
+      setBio(user.bio || "");
       setDebateTopics(user.debateTopics || []);
     }
   }, [user]);
@@ -40,42 +46,42 @@ export default function EditProfilePage() {
   const handleAddTopic = () => {
     if (newTopic.trim() && !debateTopics.includes(newTopic.trim())) {
       setDebateTopics([...debateTopics, newTopic.trim()]);
-      setNewTopic('');
+      setNewTopic("");
     }
   };
 
   const handleRemoveTopic = (topicToRemove: string) => {
-    setDebateTopics(debateTopics.filter(topic => topic !== topicToRemove));
+    setDebateTopics(debateTopics.filter((topic) => topic !== topicToRemove));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) return;
-    
+
     setLoading(true);
     setError(null);
     setSuccess(false);
-    
+
     try {
-      const userRef = doc(db, 'users', user.id);
-      
+      const userRef = doc(db, "users", user.id);
+
       await updateDoc(userRef, {
         username: username.trim(),
         bio: bio.trim(),
         debateTopics,
         updatedAt: Date.now(),
       });
-      
+
       setSuccess(true);
-      
+
       // Redirect after a short delay
       setTimeout(() => {
         router.push(`/profile/${user.id}`);
       }, 1500);
     } catch (e) {
-      console.error('Error updating profile:', e);
-      setError('Failed to update profile. Please try again.');
+      console.error("Error updating profile:", e);
+      setError("Failed to update profile. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -92,7 +98,7 @@ export default function EditProfilePage() {
   return (
     <div className="max-w-2xl mx-auto py-8">
       <h1 className="text-3xl font-bold text-center mb-8">Edit Your Profile</h1>
-      
+
       <Card>
         <form onSubmit={handleSubmit}>
           <CardHeader>
@@ -100,7 +106,10 @@ export default function EditProfilePage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Username
               </label>
               <input
@@ -113,9 +122,12 @@ export default function EditProfilePage() {
                 required
               />
             </div>
-            
+
             <div>
-              <label htmlFor="bio" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="bio"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Bio
               </label>
               <textarea
@@ -127,7 +139,7 @@ export default function EditProfilePage() {
                 placeholder="Tell others about yourself..."
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700">
                 Debate Topics of Interest
@@ -148,10 +160,13 @@ export default function EditProfilePage() {
                   Add
                 </button>
               </div>
-              
+
               <div className="mt-3 flex flex-wrap gap-2">
                 {debateTopics.map((topic, index) => (
-                  <div key={index} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm flex items-center">
+                  <div
+                    key={index}
+                    className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm flex items-center"
+                  >
                     {topic}
                     <button
                       type="button"
@@ -164,16 +179,18 @@ export default function EditProfilePage() {
                 ))}
               </div>
             </div>
-            
+
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-md">
                 <p className="text-sm text-red-700">{error}</p>
               </div>
             )}
-            
+
             {success && (
               <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                <p className="text-sm text-green-700">Profile updated successfully!</p>
+                <p className="text-sm text-green-700">
+                  Profile updated successfully!
+                </p>
               </div>
             )}
           </CardContent>
@@ -186,14 +203,12 @@ export default function EditProfilePage() {
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-            >
-              {loading ? 'Saving...' : 'Save Changes'}
+            <Button type="submit" disabled={loading}>
+              {loading ? "Saving..." : "Save Changes"}
             </Button>
           </CardFooter>
         </form>
       </Card>
     </div>
   );
+} // Added closing brace for the component function
