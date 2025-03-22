@@ -152,14 +152,14 @@ export const SignupForm: React.FC = () => {
                 I agree to the{" "}
                 <Link
                   href="/terms"
-                  className="text-purple-600 hover:text-purple-700"
+                  className="text-blue-700 hover:text-blue-900"
                 >
                   Terms of Service
                 </Link>{" "}
                 and{" "}
                 <Link
                   href="/privacy"
-                  className="text-purple-600 hover:text-purple-700"
+                  className="text-blue-700 hover:text-blue-900"
                 >
                   Privacy Policy
                 </Link>
@@ -182,7 +182,7 @@ export const SignupForm: React.FC = () => {
               loading
             }
             className="w-full mt-6"
-            variant="gradient"
+            variant="theme"
             isLoading={loading}
           >
             Create Account
@@ -207,7 +207,7 @@ export const SignupForm: React.FC = () => {
           Already have an account?{" "}
           <Link
             href="/auth/login"
-            className="text-purple-600 hover:text-purple-700 font-medium"
+            className="text-blue-700 hover:text-blue-900 font-medium"
           >
             Sign in
           </Link>

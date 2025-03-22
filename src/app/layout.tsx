@@ -4,6 +4,7 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { Menu } from "@/components/layout/Menu";
 import { AuthProvider } from "@/context/AuthContext";
 const inter = Inter({ subsets: ["latin"] });
 export const metadata = {

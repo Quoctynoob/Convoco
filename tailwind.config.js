@@ -15,6 +15,8 @@ module.exports = {
           "rgb(var(--secondary-foreground) / <alpha-value>)",
         accent: "rgb(var(--accent) / <alpha-value>)",
         "accent-foreground": "rgb(var(--accent-foreground) / <alpha-value>)",
+        skyblue: "#a7ccfa",
+        cobalt: "#004aad",
       },
     },
   },
