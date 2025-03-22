@@ -32,7 +32,9 @@ export default function ContactPage() {
         <CardContent>
           {submitted ? (
             <div className="text-center py-6">
-              <p className="text-green-600 mb-4">Thank you for your message! We'll get back to you soon.</p>
+              <p className="text-green-600 mb-4">
+                Thank you for your message! We'll get back to you soon.
+              </p>
               <Link href="/">
                 <Button variant="outline">Return to Home</Button>
               </Link>
@@ -40,7 +42,10 @@ export default function ContactPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Name
                 </label>
                 <input
@@ -53,7 +58,10 @@ export default function ContactPage() {
                 />
               </div>
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Email
                 </label>
                 <input
@@ -66,7 +74,10 @@ export default function ContactPage() {
                 />
               </div>
               <div>
-                <label htmlFor="message" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="message"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Message
                 </label>
                 <textarea
@@ -85,7 +96,15 @@ export default function ContactPage() {
             </form>
           )}
           <div className="mt-6 text-center text-gray-600">
-            <p>Or email us directly at: <a href="mailto:support@convoco.app" className="text-purple-600 hover:underline">support@convoco.app</a></p>
+            <p>
+              Or email us directly at:{" "}
+              <a
+                href="mailto:quoc@uoguelph.ca"
+                className="text-purple-600 hover:underline"
+              >
+                quoc@uoguelph.ca
+              </a>
+            </p>
           </div>
         </CardContent>
       </Card>
