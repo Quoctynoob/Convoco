@@ -10,6 +10,8 @@ import {
   createDebate,
   updateDebate,
   addArgument,
+  markUserReady,
+  resetReadyState,
 } from "@/lib/firebase/firestore";
 import {
   analyzeArgument,
@@ -19,7 +21,7 @@ import {
 import { Debate, DebateStatus } from "@/types/Debate";
 import { Argument, AIAnalysis } from "@/types/Argument";
 import { User } from "@/types/User";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, collection, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase/firebase";
 
 export const useDebateCreation = () => {
@@ -132,6 +134,48 @@ export const useDebate = (debateId: string) => {
     return () => unsubscribe();
   }, [debateId]);
 
+  // Real-time listener for debate arguments
+  useEffect(() => {
+    if (!debateId) return;
+
+    // Create a simpler query to listen for debate arguments
+    const argumentsRef = collection(db, "arguments");
+    const q = query(
+      argumentsRef,
+      where("debateId", "==", debateId)
+      // Remove the orderBy clause temporarily
+    );
+
+    // Set up real-time listener
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const argumentsList: Argument[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          argumentsList.push({
+            id: doc.id,
+            debateId: data.debateId,
+            userId: data.userId,
+            content: data.content,
+            round: data.round,
+            side: data.side,
+            createdAt: data.createdAt,
+          });
+        });
+        // Sort them client-side instead
+        argumentsList.sort((a, b) => a.createdAt - b.createdAt);
+        setDebateArguments(argumentsList);
+      },
+      (err) => {
+        console.error("Error in arguments listener:", err);
+        setError("Failed to get real-time updates for debate arguments.");
+      }
+    );
+
+    return () => unsubscribe();
+  }, [debateId]);
+
   const joinDebate = async (userId: string) => {
     if (!debate) return false;
     try {
@@ -143,16 +187,35 @@ export const useDebate = (debateId: string) => {
         setError("You cannot join your own debate");
         return false;
       }
+      
+      // Update to set status to LOBBY instead of ACTIVE
       await updateDebate(debateId, {
         opponentId: userId,
-        status: DebateStatus.ACTIVE,
-        currentRound: 1,
-        currentTurn: debate.creatorId,
+        status: DebateStatus.LOBBY, // Change to LOBBY instead of ACTIVE
+        creatorReady: false,        // Initialize ready state
+        opponentReady: false,       // Initialize ready state
+        updatedAt: Date.now()
       });
+      
+      // Return true to indicate successful join
       return true;
     } catch (e) {
       const errorMessage =
         e instanceof Error ? e.message : "Unknown error joining debate";
+      setError(errorMessage);
+      return false;
+    }
+  };
+
+  // New function to mark a user as ready in the lobby
+  const markReady = async (userId: string, isCreator: boolean) => {
+    if (!debate) return false;
+    try {
+      await markUserReady(debateId, userId, isCreator);
+      return true;
+    } catch (e) {
+      const errorMessage =
+        e instanceof Error ? e.message : "Unknown error marking as ready";
       setError(errorMessage);
       return false;
     }
@@ -256,6 +319,7 @@ export const useDebate = (debateId: string) => {
     error,
     joinDebate,
     submitArgument,
+    markReady,
   };
 };
 

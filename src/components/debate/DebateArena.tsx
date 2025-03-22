@@ -11,6 +11,7 @@ import { DebateResults } from "./DebateResults";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
 import {
   addArgument,
   getArgumentAnalysis,
@@ -38,6 +39,7 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
   onJoinDebate,
 }) => {
   const { user } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [analyses, setAnalyses] = useState<AIAnalysis[]>([]);
@@ -55,6 +57,13 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
   const wasForfeited = !!debate.forfeitedBy;
   const forfeitedByCreator = debate.forfeitedBy === debate.creatorId;
   const forfeitedByMe = user?.id === debate.forfeitedBy;
+
+  // Redirect to lobby if debate is in lobby status
+  useEffect(() => {
+    if (debate.status === DebateStatus.LOBBY) {
+      router.push(`/debates/${debate.id}/lobby`);
+    }
+  }, [debate.status, debate.id, router]);
 
   // Real-time listener for debate arguments
   useEffect(() => {
@@ -216,7 +225,7 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
         // Debate will be completed after determining winner
         updates = {
           status: DebateStatus.COMPLETED,
-          currentTurn: null, // Use null instead of undefined for Firestore
+          currentTurn: undefined, // Use null instead of undefined for Firestore
         };
       } else if (side === "creator") {
         // Switch to opponent's turn
@@ -260,6 +269,23 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
                 {loading ? "Joining..." : "Join This Debate"}
               </Button>
             )}
+          </div>
+        );
+      case DebateStatus.LOBBY:
+        return (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 shadow-sm">
+            <div className="flex items-center mb-2">
+              <div className="h-3 w-3 rounded-full bg-blue-400 mr-2"></div>
+              <h3 className="text-lg font-medium text-blue-800">
+                In Lobby
+              </h3>
+            </div>
+            <p className="text-sm text-blue-700">
+              Redirecting to the debate lobby...
+            </p>
+            <div className="mt-2 animate-pulse">
+              <div className="h-2 bg-blue-200 rounded"></div>
+            </div>
           </div>
         );
       case DebateStatus.ACTIVE:

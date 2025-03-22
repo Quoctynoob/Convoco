@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getUserProfile } from "@/lib/firebase/auth";
 import { User } from "@/types/User";
 import { leaveDebate } from "@/lib/firebase/firestore";
+import { DebateStatus } from "@/types/Debate";
 
 export default function DebateDetailPage() {
   const params = useParams();
@@ -34,6 +35,15 @@ export default function DebateDetailPage() {
   const [opponent, setOpponent] = useState<User | null>(null);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [localLoading, setLocalLoading] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  // Check if we need to redirect to lobby
+  useEffect(() => {
+    if (debate?.status === DebateStatus.LOBBY) {
+      router.push(`/debates/${debate.id}/lobby`);
+    }
+  }, [debate, router]);
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -57,7 +67,25 @@ export default function DebateDetailPage() {
 
   const handleJoinDebate = async () => {
     if (!user) return false;
-    return await joinDebate(user.id);
+    
+    setLocalLoading(true);
+    try {
+      const success = await joinDebate(user.id);
+      if (success) {
+        // Success! The debate status should now be LOBBY
+        // We'll let the useEffect above handle the redirect
+        return true;
+      } else {
+        setLocalError("Failed to join debate. Please try again.");
+        return false;
+      }
+    } catch (e) {
+      setLocalError("An unexpected error occurred.");
+      console.error(e);
+      return false;
+    } finally {
+      setLocalLoading(false);
+    }
   };
 
   const handleLeaveDebate = async () => {
@@ -80,17 +108,28 @@ export default function DebateDetailPage() {
       router.push("/debates");
     } catch (error) {
       console.error("Error leaving debate:", error);
-      alert("There was an error leaving the debate. Please try again.");
+      setLocalError("There was an error leaving the debate. Please try again.");
     } finally {
       setIsLeaving(false);
     }
   };
 
-  if (loading || loadingUsers) {
+  if (loading || loadingUsers || localLoading) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-12">
         <div className="flex justify-center items-center min-h-[300px]">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Display any errors
+  if (localError) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-2 mb-4">
+        <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+          <p className="text-red-700">{localError}</p>
         </div>
       </div>
     );

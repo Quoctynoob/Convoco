@@ -125,6 +125,8 @@ function DebatesContent() {
       router.push("/auth/login");
       return;
     }
+    
+    // First navigate to the debate page which will handle the join logic
     router.push(`/debates/${debateId}`);
   };
 
@@ -279,7 +281,7 @@ function DebatesContent() {
                             {debate.creatorSide === "affirmative" ? (
                               <>
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                                  Affirmative Available
+                                  Affirmative Taken
                                 </span>
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
                                   Negative Available
@@ -287,10 +289,10 @@ function DebatesContent() {
                               </>
                             ) : (
                               <>
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
-                                  Negative Available
-                                </span>
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                                  Negative Taken
+                                </span>
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
                                   Affirmative Available
                                 </span>
                               </>
@@ -371,16 +373,28 @@ function DebatesContent() {
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                 debate.status === DebateStatus.PENDING
                                   ? "bg-yellow-100 text-yellow-800"
-                                  : "bg-blue-100 text-blue-800"
+                                  : debate.status === DebateStatus.LOBBY
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-green-100 text-green-800"
                               }`}
                             >
-                              {debate.status}
+                              {debate.status === DebateStatus.LOBBY 
+                                ? "In Lobby" 
+                                : debate.status}
                             </span>
+                            
+                            {debate.status === DebateStatus.LOBBY && (
+                              <span className="ml-2 text-xs text-blue-600">
+                                (Waiting for participants to ready up)
+                              </span>
+                            )}
                           </div>
                         </div>
                         <Link href={`/debates/${debate.id}`}>
                           <Button variant="outline" size="sm" className="ml-4">
-                            View Debate
+                            {debate.status === DebateStatus.LOBBY 
+                              ? "Enter Lobby" 
+                              : "View Debate"}
                           </Button>
                         </Link>
                       </div>

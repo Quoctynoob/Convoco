@@ -402,3 +402,73 @@ export const getArgumentAnalysis = async (
     throw error;
   }
 };
+
+export const markUserReady = async (
+  debateId: string,
+  userId: string,
+  isCreator: boolean
+): Promise<void> => {
+  try {
+    const debateRef = doc(db, "debates", debateId);
+    
+    // Check if the user is actually a participant in the debate
+    const debateDoc = await getDoc(debateRef);
+    if (!debateDoc.exists()) {
+      throw new Error("Debate not found");
+    }
+    
+    const debateData = debateDoc.data();
+    
+    // Verify user is a participant
+    if (
+      (isCreator && debateData.creatorId !== userId) ||
+      (!isCreator && debateData.opponentId !== userId)
+    ) {
+      throw new Error("User is not a participant in this debate");
+    }
+    
+    // Update the appropriate ready field
+    if (isCreator) {
+      await updateDoc(debateRef, {
+        creatorReady: true,
+        updatedAt: Date.now()
+      });
+    } else {
+      await updateDoc(debateRef, {
+        opponentReady: true,
+        updatedAt: Date.now()
+      });
+    }
+    
+    // Check if both users are ready
+    if (
+      (isCreator && debateData.opponentReady) ||
+      (!isCreator && debateData.creatorReady)
+    ) {
+      // Both users are ready, the lobby component will handle the countdown
+      console.log("Both users are ready!");
+    }
+  } catch (error) {
+    console.error("Error marking user as ready:", error);
+    throw error;
+  }
+}
+
+/**
+ * Reset the ready state for both users
+ * @param debateId The ID of the debate
+ */
+export const resetReadyState = async (debateId: string): Promise<void> => {
+  try {
+    const debateRef = doc(db, "debates", debateId);
+    
+    await updateDoc(debateRef, {
+      creatorReady: false,
+      opponentReady: false,
+      updatedAt: Date.now()
+    });
+  } catch (error) {
+    console.error("Error resetting ready state:", error);
+    throw error;
+  }
+}
