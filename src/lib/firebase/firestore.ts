@@ -84,31 +84,47 @@ export const getDebateById = async (
   }
 };
 
-export const getOpenDebates = async (
-  lastDebate?: DocumentSnapshot,
-  pageSize: number = 20
-) => {
+export const getOpenDebates = async () => {
   try {
-    let q = query(
+    console.log("Getting open debates with status: PENDING");
+    
+    // Simplify the query to ensure it works
+    const simpleQuery = query(
       collection(db, "debates"),
-      where("status", "==", DebateStatus.PENDING),
-      orderBy("createdAt", "desc"),
-      limit(pageSize)
+      where("status", "==", DebateStatus.PENDING)
     );
-
-    if (lastDebate) {
-      q = query(q, startAfter(lastDebate));
+    
+    const querySnapshot = await getDocs(simpleQuery);
+    
+    console.log(`Found ${querySnapshot.size} open debates with pending status`);
+    
+    const debates = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      // Log each debate for debugging
+      console.log(`Debate ${doc.id}:`, { id: doc.id, ...data });
+      return { id: doc.id, ...data } as Debate;
+    });
+    
+    // If no debates are found with the query, try getting all debates as a fallback
+    if (debates.length === 0) {
+      console.log("No debates found with query, will log all debates in database:");
+      await getAllDebates();
     }
-
-    const querySnapshot = await getDocs(q);
-
-    return querySnapshot.docs.map(
-      (doc) => ({ id: doc.id, ...doc.data() } as Debate)
-    );
+    
+    return debates;
   } catch (error) {
     console.error("Error getting open debates:", error);
-    // Return an empty array instead of throwing
-    return [];
+    
+    // Instead of returning an empty array immediately, try getting all debates as a fallback
+    console.log("Trying fallback approach to get ALL debates:");
+    try {
+      const allDebates = await getAllDebates();
+      // Filter client-side instead
+      return allDebates.filter(debate => debate.status === DebateStatus.PENDING);
+    } catch (fallbackError) {
+      console.error("Fallback approach also failed:", fallbackError);
+      return [];
+    }
   }
 };
 
@@ -418,6 +434,24 @@ export const getUserActiveDebates = async (userId: string): Promise<Debate[]> =>
     return allDebates;
   } catch (error) {
     console.error("Error getting user's active debates:", error);
+    return [];
+  }
+};
+
+export const getAllDebates = async () => {
+  try {
+    console.log("Getting ALL debates (for debugging)");
+    
+    const querySnapshot = await getDocs(collection(db, "debates"));
+    
+    console.log(`Found ${querySnapshot.size} total debates in the database`);
+    
+    return querySnapshot.docs.map(doc => {
+      console.log(`Debate ${doc.id}:`, doc.data());
+      return { id: doc.id, ...doc.data() } as Debate;
+    });
+  } catch (error) {
+    console.error("Error getting all debates:", error);
     return [];
   }
 };

@@ -7,9 +7,8 @@ import { getOpenDebates, getUserActiveDebates } from "@/lib/firebase/firestore";
 import { Debate, DebateStatus } from "@/types/Debate";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/Card";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
-import { useSearchParams } from 'next/navigation';
 
 export default function DebatesPage() {
   const [openDebates, setOpenDebates] = useState<Debate[]>([]);
@@ -25,35 +24,32 @@ export default function DebatesPage() {
 
   // Fetch open debates
   useEffect(() => {
-    const fetchMyDebates = async () => {
-      if (!isAuthenticated || !user) {
-        setMyDebates([]);
-        setLoadingMyDebates(false);
-        return;
-      }
-      
+    const fetchDebates = async () => {
       try {
-        setLoadingMyDebates(true);
-        console.log("Fetching debates for user:", user.id);
-        const debates = await getUserActiveDebates(user.id);
-        console.log("Fetched debates:", debates);
-        setMyDebates(debates);
+        console.log("Fetching open debates...");
+        setLoading(true);
+        // Directly get collection - simpler approach to debug
+        const debates = await getOpenDebates();
+        console.log("Fetched open debates:", debates.length);
+        setOpenDebates(debates);
+        setFilteredDebates(debates);
       } catch (e) {
-        console.error("Error fetching user debates:", e);
-        setMyDebates([]);
+        console.error("Error fetching debates:", e);
+        // Even on error, we should set empty arrays to prevent infinite loading
+        setOpenDebates([]);
+        setFilteredDebates([]);
       } finally {
-        setLoadingMyDebates(false);
+        // Always set loading to false, even if there was an error
+        setLoading(false);
       }
     };
     
-    fetchMyDebates();
+    fetchDebates();
     
-    // Set up an interval to refresh the debates every 30 seconds
-    const intervalId = setInterval(fetchMyDebates, 15000);
-    
-    // Clean up the interval when the component unmounts
+    // Shorter interval for better user experience but not too frequent
+    const intervalId = setInterval(fetchDebates, 15000);
     return () => clearInterval(intervalId);
-  }, [user, isAuthenticated, refreshParam]);
+  }, []);
 
   // Fetch user's ongoing debates
   useEffect(() => {
@@ -66,7 +62,9 @@ export default function DebatesPage() {
       
       try {
         setLoadingMyDebates(true);
+        console.log("Fetching debates for user:", user.id);
         const debates = await getUserActiveDebates(user.id);
+        console.log("Fetched user debates:", debates.length);
         setMyDebates(debates);
       } catch (e) {
         console.error("Error fetching user debates:", e);
@@ -78,12 +76,10 @@ export default function DebatesPage() {
     
     fetchMyDebates();
     
-    // Refresh user debates every 30 seconds
-    const intervalId = setInterval(fetchMyDebates, 30000);
-    
-    // Clean up
+    // Refresh user debates periodically
+    const intervalId = setInterval(fetchMyDebates, 15000);
     return () => clearInterval(intervalId);
-  }, [user, isAuthenticated]);
+  }, [user, isAuthenticated, refreshParam]);
 
   // Filter debates based on search term
   useEffect(() => {
@@ -104,6 +100,22 @@ export default function DebatesPage() {
       return;
     }
     router.push(`/debates/${debateId}`);
+  };
+
+  // Temporary function to load all debates no matter what - for debugging
+  const loadAllDebates = async () => {
+    try {
+      setLoading(true);
+      console.log("Manually fetching all debates...");
+      const debates = await getOpenDebates();
+      console.log("Fetched debates:", debates);
+      setOpenDebates(debates);
+      setFilteredDebates(debates);
+    } catch (e) {
+      console.error("Error in manual fetch:", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -182,7 +194,19 @@ export default function DebatesPage() {
           {/* Open Debates List */}
           <Card>
             <CardContent className="p-4">
-              <h2 className="text-xl font-semibold mb-4">Available Debate Rooms</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Available Debate Rooms</h2>
+                
+                {/* Debug refresh button */}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={loadAllDebates} 
+                  disabled={loading}
+                >
+                  {loading ? 'Refreshing...' : 'Refresh Debates'}
+                </Button>
+              </div>
               
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-12">
@@ -286,7 +310,32 @@ export default function DebatesPage() {
         <TabsContent value="ongoing" className="space-y-4">
           <Card>
             <CardContent className="p-4">
-              <h2 className="text-xl font-semibold mb-4">My Ongoing Debates</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">My Ongoing Debates</h2>
+                
+                {/* Debug refresh button */}
+                {isAuthenticated && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      if (user) {
+                        setLoadingMyDebates(true);
+                        getUserActiveDebates(user.id).then(debates => {
+                          setMyDebates(debates);
+                          setLoadingMyDebates(false);
+                        }).catch(e => {
+                          console.error("Error refreshing user debates:", e);
+                          setLoadingMyDebates(false);
+                        });
+                      }
+                    }} 
+                    disabled={loadingMyDebates}
+                  >
+                    {loadingMyDebates ? 'Refreshing...' : 'Refresh'}
+                  </Button>
+                )}
+              </div>
               
               {loadingMyDebates ? (
                 <div className="flex flex-col items-center justify-center py-12">
