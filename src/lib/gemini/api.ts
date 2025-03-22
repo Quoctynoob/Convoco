@@ -35,7 +35,6 @@ export const analyzeArgument = async (
       creator,
       opponent
     );
-
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: {
@@ -53,14 +52,11 @@ export const analyzeArgument = async (
         ],
       }),
     });
-
     if (!response.ok) {
       throw new Error(`Gemini API error: ${response.statusText}`);
     }
-
     const data: GeminiResponse = await response.json();
     const analysisText = data.candidates[0].content.parts[0].text;
-
     // Parse the structured response
     return parseAnalysisResponse(analysisText, argument);
   } catch (error) {
@@ -80,7 +76,7 @@ export const analyzeArgument = async (
 
 export const determineDebateWinner = async (
   debate: Debate,
-  arguments: Argument[],
+  debateArguments: Argument[],
   analyses: AIAnalysis[],
   creator: User,
   opponent: User
@@ -88,12 +84,11 @@ export const determineDebateWinner = async (
   try {
     const prompt = generateWinnerPrompt(
       debate,
-      arguments,
+      debateArguments,
       analyses,
       creator,
       opponent
     );
-
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: {
@@ -111,19 +106,15 @@ export const determineDebateWinner = async (
         ],
       }),
     });
-
     if (!response.ok) {
       throw new Error(`Gemini API error: ${response.statusText}`);
     }
-
     const data: GeminiResponse = await response.json();
     const result = data.candidates[0].content.parts[0].text;
-
     // Parse the winner determination
     return parseWinnerResponse(result, creator.id, opponent.id);
   } catch (error) {
     console.error("Error determining winner with Gemini:", error);
-
     // Default to creator as winner in case of error
     return {
       winnerId: creator.id,
@@ -137,7 +128,6 @@ export const suggestDebateTopics = async (): Promise<string[]> => {
   try {
     const prompt =
       "Suggest 5 interesting debate topics that would generate thoughtful discussion. Provide the topics only, no explanations.";
-
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: {
@@ -155,24 +145,19 @@ export const suggestDebateTopics = async (): Promise<string[]> => {
         ],
       }),
     });
-
     if (!response.ok) {
       throw new Error(`Gemini API error: ${response.statusText}`);
     }
-
     const data: GeminiResponse = await response.json();
     const topicsText = data.candidates[0].content.parts[0].text;
-
     // Parse the topics list
     const topics = topicsText
       .split("\n")
       .map((line) => line.replace(/^[0-9\.\-\*]+\s*/, "").trim())
       .filter((topic) => topic.length > 0);
-
     return topics.slice(0, 5);
   } catch (error) {
     console.error("Error suggesting topics with Gemini:", error);
-
     // Fallback topics in case of error
     return [
       "Should artificial intelligence be regulated more strictly?",

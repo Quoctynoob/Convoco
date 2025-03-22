@@ -24,14 +24,11 @@ export const parseAnalysisResponse = (
   try {
     // Extract JSON from the response (in case there's any wrapping text)
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-
     if (!jsonMatch) {
       throw new Error("No JSON found in response");
     }
-
     const jsonStr = jsonMatch[0];
     const parsed: AnalysisResponse = JSON.parse(jsonStr);
-
     return {
       argumentId: argument.id,
       userId: argument.userId,
@@ -45,7 +42,6 @@ export const parseAnalysisResponse = (
   } catch (error) {
     console.error("Error parsing analysis response:", error);
     console.log("Raw response:", responseText);
-
     // Fallback analysis
     return {
       argumentId: argument.id,
@@ -67,19 +63,15 @@ export const parseWinnerResponse = (
   try {
     // Extract JSON from the response (in case there's any wrapping text)
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-
     if (!jsonMatch) {
       throw new Error("No JSON found in response");
     }
-
     const jsonStr = jsonMatch[0];
     const parsed: WinnerResponse = JSON.parse(jsonStr);
-
     // Validate winner ID
     if (parsed.winnerId !== creatorId && parsed.winnerId !== opponentId) {
       throw new Error("Invalid winner ID");
     }
-
     return {
       winnerId: parsed.winnerId,
       explanation: parsed.explanation,
@@ -87,7 +79,6 @@ export const parseWinnerResponse = (
   } catch (error) {
     console.error("Error parsing winner response:", error);
     console.log("Raw response:", responseText);
-
     // Fallback to creator as winner
     return {
       winnerId: creatorId,

@@ -1,6 +1,5 @@
 // src/hooks/useDebate.ts
 "use client";
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -38,7 +37,6 @@ export const useDebateCreation = () => {
         console.error("Error loading suggested topics:", e);
       }
     };
-
     loadSuggestedTopics();
   }, []);
 
@@ -50,7 +48,6 @@ export const useDebateCreation = () => {
   ) => {
     setLoading(true);
     setError(null);
-
     try {
       const newDebate: Omit<Debate, "id" | "createdAt" | "updatedAt"> = {
         topic,
@@ -62,7 +59,6 @@ export const useDebateCreation = () => {
         arguments: [],
         aiAnalysis: [],
       };
-
       const debateId = await createDebate(newDebate);
       router.push(`/debates/${debateId}`);
       return debateId;
@@ -86,17 +82,15 @@ export const useDebateCreation = () => {
 
 export const useDebate = (debateId: string) => {
   const [debate, setDebate] = useState<Debate | null>(null);
-  const [arguments, setArguments] = useState<Argument[]>([]);
+  const [debateArguments, setDebateArguments] = useState<Argument[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     if (!debateId) return;
-
     setLoading(true);
     const debateRef = doc(db, "debates", debateId);
-
     // Real-time listener for debate updates
     const unsubscribe = onSnapshot(
       debateRef,
@@ -120,12 +114,11 @@ export const useDebate = (debateId: string) => {
     const loadArguments = async () => {
       try {
         const args = await getDebateArguments(debateId);
-        setArguments(args);
+        setDebateArguments(args);
       } catch (e) {
         console.error("Error loading arguments:", e);
       }
     };
-
     loadArguments();
 
     return () => unsubscribe();
@@ -133,25 +126,21 @@ export const useDebate = (debateId: string) => {
 
   const joinDebate = async (userId: string) => {
     if (!debate) return false;
-
     try {
       if (debate.status !== DebateStatus.PENDING) {
         setError("This debate is no longer open for joining");
         return false;
       }
-
       if (debate.creatorId === userId) {
         setError("You cannot join your own debate");
         return false;
       }
-
       await updateDebate(debateId, {
         opponentId: userId,
         status: DebateStatus.ACTIVE,
         currentRound: 1,
         currentTurn: debate.creatorId,
       });
-
       return true;
     } catch (e) {
       const errorMessage =
@@ -169,20 +158,16 @@ export const useDebate = (debateId: string) => {
     opponent: User | null
   ) => {
     if (!debate || !opponent) return false;
-
     try {
       if (debate.status !== DebateStatus.ACTIVE) {
         setError("This debate is not active");
         return false;
       }
-
       if (debate.currentTurn !== userId) {
         setError("It is not your turn");
         return false;
       }
-
       const currentRound = debate.currentRound;
-
       // Add the argument
       const newArgument: Omit<Argument, "id" | "createdAt"> = {
         debateId,
@@ -191,7 +176,6 @@ export const useDebate = (debateId: string) => {
         round: currentRound,
         side,
       };
-
       const argumentId = await addArgument(newArgument);
       const argument = {
         id: argumentId,
@@ -200,12 +184,11 @@ export const useDebate = (debateId: string) => {
       };
 
       // Get AI analysis
-      const previousArgs = arguments.filter(
+      const previousArgs = debateArguments.filter(
         (arg) =>
           arg.round < currentRound ||
           (arg.round === currentRound && arg.userId !== userId)
       );
-
       const analysis = await analyzeArgument(
         debate,
         argument,
@@ -216,10 +199,9 @@ export const useDebate = (debateId: string) => {
 
       // Determine next turn or complete debate
       let updates: Partial<Debate> = {};
-
       if (side === "opponent" && currentRound >= debate.rounds) {
         // Debate is complete, determine winner
-        const allArguments = [...arguments, argument];
+        const allArguments = [...debateArguments, argument];
         const result = await determineDebateWinner(
           debate,
           allArguments,
@@ -227,7 +209,6 @@ export const useDebate = (debateId: string) => {
           creator,
           opponent
         );
-
         updates = {
           status: DebateStatus.COMPLETED,
           winner: result.winnerId,
@@ -258,7 +239,7 @@ export const useDebate = (debateId: string) => {
 
   return {
     debate,
-    debateArguments: arguments,
+    debateArguments,
     loading,
     error,
     joinDebate,
@@ -292,7 +273,6 @@ export const useDebateList = (userId?: string) => {
         setLoading(false);
       }
     };
-
     loadDebates();
   }, [userId]);
 
