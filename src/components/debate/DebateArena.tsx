@@ -91,7 +91,6 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
 
   const handleForfeit = async () => {
     if (!user || !isParticipant) return;
-
     setIsForfeiting(true);
     try {
       await forfeitDebate(debate.id, user.id);
@@ -102,6 +101,30 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
     } finally {
       setIsForfeiting(false);
     }
+  };
+
+  const getPreviousArgument = (): Argument | null => {
+    if (!debateArguments.length) return null;
+
+    // If it's the creator's turn, get the last argument from the opponent
+    // If it's the opponent's turn, get the last argument from the creator
+    const targetUserId = isCreator ? debate.opponentId : debate.creatorId;
+
+    // Sort arguments by creation time (newest first)
+    const sortedArgs = [...debateArguments].sort(
+      (a, b) => b.createdAt - a.createdAt
+    );
+
+    // Find the most recent argument from the target user
+    return sortedArgs.find((arg) => arg.userId === targetUserId) || null;
+  };
+
+  const getPreviousArgumentUser = (): User | null => {
+    const prevArg = getPreviousArgument();
+    if (!prevArg) return null;
+
+    // Return the user who created the previous argument
+    return prevArg.userId === creator.id ? creator : opponent;
   };
 
   const handleSubmitArgument = async (content: string) => {
@@ -315,7 +338,6 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
             </div>
           </div>
         )}
-
         {/* Arguments and analyses */}
         {debateArguments.map((argument) => {
           const analysis = analyses.find((a) => a.argumentId === argument.id);
@@ -339,7 +361,6 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
             </div>
           );
         })}
-
         {debate.status === DebateStatus.ACTIVE && isMyTurn && (
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
             <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-indigo-50">
@@ -356,11 +377,12 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
                 loading={loading}
                 round={debate.currentRound}
                 maxLength={5000}
+                previousArgument={getPreviousArgument()}
+                previousUser={getPreviousArgumentUser()}
               />
             </div>
           </div>
         )}
-
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-md p-4 mt-4">
             <p className="text-sm text-red-700">{error}</p>
@@ -377,34 +399,28 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
           {debate.topic}
         </h1>
         <p className="text-gray-600 mb-4">{debate.description}</p>
-
         <div className="flex flex-wrap gap-2 mb-4">
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
             {debate.rounds} rounds
           </span>
-
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
             Creator: {creator.username}
           </span>
-
           {opponent && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
               Opponent: {opponent.username}
             </span>
           )}
-
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
             Creator Position:{" "}
             {debate.creatorSide === "affirmative" ? "Affirmative" : "Negative"}
           </span>
         </div>
       </div>
-
       <div className="space-y-6">
         {renderDebateStatus()}
         {renderDebateContent()}
       </div>
-
       {/* Forfeit confirmation modal */}
       <Modal
         isOpen={showForfeitModal}

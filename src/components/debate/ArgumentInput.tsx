@@ -2,12 +2,16 @@
 "use client";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Argument } from "@/types/Argument";
+import { User } from "@/types/User";
 
 interface ArgumentInputProps {
   onSubmit: (content: string) => void;
   loading: boolean;
   round: number;
   maxLength: number;
+  previousArgument?: Argument | null;
+  previousUser?: User | null;
 }
 
 export const ArgumentInput: React.FC<ArgumentInputProps> = ({
@@ -15,6 +19,8 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
   loading,
   round,
   maxLength,
+  previousArgument,
+  previousUser,
 }) => {
   const [content, setContent] = useState("");
 
@@ -32,6 +38,46 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Previous argument display */}
+      {previousArgument && previousUser && (
+        <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <div className="flex items-center mb-2">
+            <div className="flex-shrink-0 mr-3">
+              {previousUser.photoURL ? (
+                <img
+                  src={previousUser.photoURL}
+                  alt={previousUser.username}
+                  className="h-8 w-8 rounded-full"
+                />
+              ) : (
+                <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-white font-medium">
+                  {previousUser.username.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-700">
+                {previousUser.username} said:
+              </p>
+              <p className="text-xs text-gray-500">
+                Round {previousArgument.round}
+              </p>
+            </div>
+          </div>
+          <div className="pl-11 text-gray-700 max-h-60 overflow-y-auto text-sm bg-white p-3 rounded border border-gray-100">
+            {previousArgument.content.split("\n").map((paragraph, i) =>
+              paragraph ? (
+                <p key={i} className="mb-2">
+                  {paragraph}
+                </p>
+              ) : (
+                <br key={i} />
+              )
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="rounded-lg overflow-hidden border border-gray-300 focus-within:border-purple-500 focus-within:ring-1 focus-within:ring-purple-500 transition-all">
         <textarea
           value={content}
