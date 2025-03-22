@@ -1,11 +1,10 @@
-// src/types/Debate.ts
-import { Argument, AIAnalysis } from "./Argument";
+// Update this in src/types/Debate.ts
 
 export enum DebateStatus {
-  PENDING = "pending", // Waiting for opponent
-  ACTIVE = "active", // Debate in progress
-  COMPLETED = "completed", // Debate finished with result
-  ABANDONED = "abandoned", // Debate abandoned
+  PENDING = "pending",
+  ACTIVE = "active",
+  COMPLETED = "completed",
+  ABANDONED = "abandoned",
 }
 
 export interface Debate {
@@ -13,15 +12,16 @@ export interface Debate {
   topic: string;
   description: string;
   creatorId: string;
-  creatorSide: "affirmative" | "negative"; // New field to track which side the creator chose
-  opponentId?: string;
+  opponentId?: string | null;
+  creatorSide: "affirmative" | "negative";
   status: DebateStatus;
-  currentTurn?: string; // User ID of whose turn it is
-  winner?: string; // User ID of the winner
-  rounds: number; // Total number of rounds
-  currentRound: number; // Current round number
-  arguments: Argument[]; // List of arguments made
-  aiAnalysis: AIAnalysis[]; // AI analysis for each argument
+  rounds: number;
+  currentRound: number;
+  currentTurn?: string | null;
+  winner?: string | null;
+  forfeitedBy?: string | null; // New field to track who forfeited
+  arguments: string[];
+  aiAnalysis: string[];
   createdAt: number;
   updatedAt: number;
 }

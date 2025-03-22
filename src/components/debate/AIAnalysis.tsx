@@ -2,7 +2,6 @@
 "use client";
 import React, { useState } from "react";
 import { AIAnalysis, FactCheck } from "@/types/Argument";
-import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 
 interface AIAnalysisDisplayProps {
@@ -14,7 +13,6 @@ export const AIAnalysisDisplay: React.FC<AIAnalysisDisplayProps> = ({
   analysis,
   showCounterpoints = false,
 }) => {
-  const [showDetails, setShowDetails] = useState(false);
   const [selectedTab, setSelectedTab] = useState<
     "analysis" | "factCheck" | "counterpoints"
   >("analysis");
@@ -34,15 +32,25 @@ export const AIAnalysisDisplay: React.FC<AIAnalysisDisplayProps> = ({
   };
 
   return (
-    <Card className="border border-purple-200 overflow-hidden">
-      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-4 border-b border-purple-200">
+    <Card className="border border-purple-200 overflow-hidden shadow-sm hover:shadow-md transition-all">
+      <div className="bg-gradient-to-r from-purple-100 to-indigo-100 p-4 border-b border-purple-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 flex items-center justify-center text-white font-bold shadow-sm">
               AI
             </div>
             <div>
-              <h4 className="font-medium text-gray-900">Gemini Analysis</h4>
+              <h4 className="font-medium text-gray-900 flex items-center gap-1">
+                Gemini Analysis
+                <svg
+                  className="h-4 w-4 text-purple-500"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-9.618 5.04C2.127 12.227 2 12.612 2 13c0 5.009 3.352 9.646 8.71 11.854a1 1 0 00.58 0C17.648 22.646 21 18.009 21 13c0-.388-.127-.773-.382-1.016z"></path>
+                </svg>
+              </h4>
               <p className="text-xs text-gray-600">
                 AI-powered feedback and fact-checking
               </p>
@@ -51,16 +59,22 @@ export const AIAnalysisDisplay: React.FC<AIAnalysisDisplayProps> = ({
           <div
             className={`${getScoreBg(
               analysis.score
-            )} rounded-full px-3 py-1 text-sm font-medium border`}
+            )} rounded-full px-3 py-1 text-sm font-medium border flex items-center gap-1`}
           >
-            Score:{" "}
+            <svg
+              className="h-4 w-4 text-purple-500"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+            </svg>
             <span className={getScoreColor(analysis.score)}>
               {analysis.score}/10
             </span>
           </div>
         </div>
       </div>
-
       <div className="border-b border-gray-200">
         <nav className="flex -mb-px">
           <button
@@ -107,7 +121,6 @@ export const AIAnalysisDisplay: React.FC<AIAnalysisDisplayProps> = ({
             )}
         </nav>
       </div>
-
       <CardContent className="p-4">
         {selectedTab === "analysis" && (
           <div className="prose prose-sm max-w-none">
@@ -122,7 +135,6 @@ export const AIAnalysisDisplay: React.FC<AIAnalysisDisplayProps> = ({
             )}
           </div>
         )}
-
         {selectedTab === "factCheck" && (
           <div className="space-y-3">
             {analysis.factCheck && analysis.factCheck.length > 0 ? (
@@ -145,32 +157,48 @@ export const AIAnalysisDisplay: React.FC<AIAnalysisDisplayProps> = ({
                     </div>
                     <p className="font-medium text-gray-900">{fact.claim}</p>
                   </div>
-                  <p className="text-sm text-gray-700 mt-2">
+                  <p className="text-sm text-gray-700 mt-2 pl-7">
                     {fact.explanation}
                   </p>
                 </div>
               ))
             ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-500">
+              <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-100">
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  ></path>
+                </svg>
+                <p className="mt-2 text-gray-500">
                   No fact checks for this argument.
                 </p>
               </div>
             )}
           </div>
         )}
-
         {selectedTab === "counterpoints" &&
           showCounterpoints &&
           analysis.suggestedCounterpoints && (
-            <div className="space-y-2">
+            <div className="space-y-3">
+              <p className="text-sm text-gray-500 italic mb-3">
+                Consider addressing these points in your response:
+              </p>
               {analysis.suggestedCounterpoints.map((point, index) => (
                 <div
                   key={index}
                   className="p-3 bg-indigo-50 border border-indigo-200 rounded-md"
                 >
                   <div className="flex items-start gap-2">
-                    <div className="h-5 w-5 rounded-full bg-indigo-500 text-white flex items-center justify-center text-xs mt-0.5">
+                    <div className="h-5 w-5 rounded-full bg-indigo-500 text-white flex items-center justify-center text-xs mt-0.5 flex-shrink-0">
                       {index + 1}
                     </div>
                     <p className="text-gray-800">{point}</p>
