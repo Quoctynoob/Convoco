@@ -1,6 +1,4 @@
-// src/app/debates/[debateId]/page.tsx
 "use client";
-
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -16,13 +14,12 @@ export default function DebateDetailPage() {
   const { user } = useAuth();
   const {
     debate,
-    debateArguments: arguments,
+    debateArguments: args, // Changed from 'arguments'
     loading,
     error,
     joinDebate,
     submitArgument,
   } = useDebate(debateId);
-
   const [creator, setCreator] = useState<User | null>(null);
   const [opponent, setOpponent] = useState<User | null>(null);
   const [loadingUsers, setLoadingUsers] = useState(true);
@@ -30,14 +27,10 @@ export default function DebateDetailPage() {
   useEffect(() => {
     const loadUsers = async () => {
       if (!debate) return;
-
       setLoadingUsers(true);
       try {
-        // Load creator
         const creatorProfile = await getUserProfile(debate.creatorId);
         setCreator(creatorProfile);
-
-        // Load opponent if exists
         if (debate.opponentId) {
           const opponentProfile = await getUserProfile(debate.opponentId);
           setOpponent(opponentProfile);
@@ -48,7 +41,6 @@ export default function DebateDetailPage() {
         setLoadingUsers(false);
       }
     };
-
     loadUsers();
   }, [debate]);
 
@@ -115,10 +107,9 @@ export default function DebateDetailPage() {
           </Link>
         </div>
       </div>
-
       <DebateArena
         debate={debate}
-        arguments={debateArguments}
+        arguments={args} // Changed from debateArguments
         creator={creator}
         opponent={opponent}
         onJoinDebate={handleJoinDebate}
