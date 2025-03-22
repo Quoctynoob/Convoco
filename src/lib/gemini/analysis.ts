@@ -30,6 +30,7 @@ export const parseAnalysisResponse = (
     const jsonStr = jsonMatch[0];
     const parsed: AnalysisResponse = JSON.parse(jsonStr);
     return {
+      id: `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`, // Add temporary ID that will be replaced when stored in DB
       argumentId: argument.id,
       userId: argument.userId,
       round: argument.round,
@@ -44,6 +45,7 @@ export const parseAnalysisResponse = (
     console.log("Raw response:", responseText);
     // Fallback analysis
     return {
+      id: `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`, // Add temporary ID here too
       argumentId: argument.id,
       userId: argument.userId,
       round: argument.round,
