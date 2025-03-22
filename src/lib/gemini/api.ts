@@ -1,5 +1,6 @@
 // src/lib/gemini/api.ts
 import { AIAnalysis, Argument, FactCheck } from "@/types/Argument";
+import { parseAnalysisResponse, parseWinnerResponse } from "./analysis";
 import { Debate } from "@/types/Debate";
 import { User } from "@/types/User";
 
