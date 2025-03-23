@@ -99,6 +99,8 @@ function mockGeminiResponse(prompt: string): string {
   return "Mock response for testing purposes. Please add your API key for actual functionality.";
 }
 
+// Fix for analyzeArgument function in api.ts
+
 export async function analyzeArgument(
   debate: Debate,
   argument: Argument,
@@ -176,13 +178,13 @@ Return your analysis as a JSON object with the following format:
     }
     
     const analysis: AIAnalysis = {
-      id: `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`, // Add temporary ID
+      id: `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       argumentId: argument.id,
-      userId: argument.userId,  // Include userId to match your existing implementation
-      round: argument.round,    // Include round to match your existing implementation
-      debateId: debate.id,
+      debateId: argument.debateId, // Add this line to fix error
+      userId: argument.userId,
+      round: argument.round,
       score: parsed.score || 7.0,
-      content: parsed.analysis || "No analysis provided", // Note: using 'analysis' from the response
+      content: parsed.analysis || "No analysis provided", 
       factCheck: parsed.factCheck || [],
       suggestedCounterpoints: parsed.suggestedCounterpoints || [],
       createdAt: Date.now()
@@ -201,9 +203,9 @@ Return your analysis as a JSON object with the following format:
     const fallbackAnalysis: AIAnalysis = {
       id: `fallback_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       argumentId: argument.id,
+      debateId: argument.debateId, // Add this line to fix error
       userId: argument.userId,
       round: argument.round, 
-      debateId: debate.id,
       score: 5.0,
       content: "The system encountered an error analyzing this argument. This is a fallback analysis.",
       factCheck: [],
