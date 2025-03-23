@@ -118,12 +118,12 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
               <td className="px-6 py-4 whitespace-nowrap">
                 <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full 
                   ${sortBy === 'points' 
-                    ? 'bg-blue-100 text-blue-800' 
+                    ? 'bg-indigo-100 text-indigo-800' 
                     : sortBy === 'wins'
-                    ? 'bg-green-100 text-green-800'
+                    ? 'bg-green-100 text-green-900'
                     : sortBy === 'winRate'
-                    ? 'bg-purple-100 text-purple-800'
-                    : 'bg-gray-100 text-gray-800'
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : 'bg-pink-100 text-pink-800'
                   }`}>
                   {getSortValue(user)}
                 </span>
