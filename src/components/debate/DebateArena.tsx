@@ -18,9 +18,10 @@ import {
   updateDebate,
   forfeitDebate,
   getDebateArguments,
+  getDebateAnalyses,
 } from "@/lib/firebase/firestore";
-import { analyzeArgument } from "@/lib/gemini/api";
-import { onSnapshot, collection, query, where } from "firebase/firestore";
+import { analyzeArgument, determineDebateWinner } from "@/lib/gemini/api";
+import { onSnapshot, collection, query, where, doc, runTransaction } from "firebase/firestore";
 import { db } from "@/lib/firebase/firebase";
 
 interface DebateArenaProps {
@@ -190,6 +191,7 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
     try {
       // Determine which side the user is on
       const side = isCreator ? "creator" : "opponent";
+      
       // Create the new argument
       const newArgument: Omit<Argument, "id" | "createdAt"> = {
         debateId: debate.id,
@@ -198,6 +200,7 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
         round: debate.currentRound,
         side,
       };
+      
       // Add argument to Firestore
       const argumentId = await addArgument(newArgument);
       const argument = {
@@ -205,46 +208,111 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
         ...newArgument,
         createdAt: Date.now(),
       };
+      
       // Get previous arguments for context
       const previousArgs = debateArguments.filter(
         (arg) =>
           arg.round < debate.currentRound ||
           (arg.round === debate.currentRound && arg.userId !== user.id)
       );
+      
       // Get AI analysis
-      const analysis = await analyzeArgument(
-        debate,
-        argument,
-        previousArgs,
-        creator,
-        opponent
-      );
-      // Determine next turn or complete debate
-      let updates: Partial<Debate> = {};
-      if (side === "opponent" && debate.currentRound >= debate.rounds) {
-        // Debate will be completed after determining winner
-        updates = {
-          status: DebateStatus.COMPLETED,
-          currentTurn: undefined, // Use null instead of undefined for Firestore
-        };
-      } else if (side === "creator") {
-        
-        // Switch to opponent's turn
-        updates = {
-          currentTurn: debate.opponentId,
-        };
-      } else {
-        // Switch back to creator's turn and increment round
-        updates = {
-          currentRound: debate.currentRound + 1,
-          currentTurn: debate.creatorId,
-        };
+      try {
+        await analyzeArgument(
+          debate,
+          argument,
+          previousArgs,
+          creator,
+          opponent
+        );
+      } catch (analysisError) {
+        console.error("Error during analysis:", analysisError);
+        // Continue even if analysis fails
       }
-      // Update debate status
-      await updateDebate(debate.id, updates);
+      
+      // Use transaction to update debate status
+      const debateRef = doc(db, "debates", debate.id);
+      
+      await runTransaction(db, async (transaction) => {
+        const debateDoc = await transaction.get(debateRef);
+        
+        if (!debateDoc.exists()) {
+          throw new Error("Debate does not exist!");
+        }
+        
+        let updates: Partial<Debate> = {};
+        
+        if (side === "opponent" && debate.currentRound >= debate.rounds) {
+          try {
+            // First update to mark as completed
+            updates = {
+              status: DebateStatus.COMPLETED,
+              currentTurn: null,
+              updatedAt: Date.now()
+            };
+            
+            transaction.update(debateRef, updates);
+            
+            // Get all arguments and analyses for winner determination
+            const allArguments = await getDebateArguments(debate.id);
+            const analyses = await getDebateAnalyses(debate.id);
+            
+            // Determine winner
+            const result = await determineDebateWinner(
+              debate,
+              allArguments,
+              analyses,
+              creator,
+              opponent
+            );
+            
+            // Update with winner in a separate transaction
+            const winnerUpdates = {
+              winner: result.winnerId,
+              updatedAt: Date.now()
+            };
+            
+            // We don't await this to avoid blocking the transaction
+            updateDebate(debate.id, winnerUpdates)
+              .catch(err => console.error("Error updating winner:", err));
+            
+          } catch (winnerError) {
+            console.error("Error determining winner:", winnerError);
+            
+            // If we can't determine winner, default to creator
+            updates = {
+              status: DebateStatus.COMPLETED,
+              currentTurn: null,
+              winner: creator.id,
+              updatedAt: Date.now()
+            };
+            
+            transaction.update(debateRef, updates);
+          }
+        } else if (side === "creator") {
+          // Switch to opponent's turn
+          updates = {
+            currentTurn: debate.opponentId,
+            updatedAt: Date.now()
+          };
+          
+          transaction.update(debateRef, updates);
+        } else {
+          // Switch back to creator's turn and increment round
+          updates = {
+            currentRound: debate.currentRound + 1,
+            currentTurn: debate.creatorId,
+            updatedAt: Date.now()
+          };
+          
+          transaction.update(debateRef, updates);
+        }
+      });
+      
     } catch (e) {
-      setError("Failed to submit argument. Please try again.");
-      console.error(e);
+      const errorMessage = e instanceof Error ? e.message : "Unknown error";
+      console.error("Error submitting argument:", e);
+      setError(`Failed to submit argument: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

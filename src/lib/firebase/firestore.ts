@@ -511,26 +511,23 @@ export const resetReadyState = async (debateId: string): Promise<void> => {
   }
 }
 
-export async function getDebateAnalyses(debateId: string): Promise<AIAnalysis[]> {
+export const getDebateAnalyses = async (debateId: string): Promise<AIAnalysis[]> => {
   try {
-    // Query for all analyses for this debate
-    const querySnapshot = await getDocs(
-      query(
-        collection(db, "analyses"),
-        where("debateId", "==", debateId),
-        orderBy("createdAt", "asc")
-      )
+    const q = query(
+      collection(db, "analyses"),
+      where("debateId", "==", debateId)
     );
     
-    // Convert to array of AIAnalysis objects
+    const snapshot = await getDocs(q);
     const analyses: AIAnalysis[] = [];
-    querySnapshot.forEach(doc => {
+    
+    snapshot.forEach((doc) => {
       analyses.push({ id: doc.id, ...doc.data() } as AIAnalysis);
     });
     
     return analyses;
   } catch (error) {
-    console.error(`Error getting analyses for debate ID ${debateId}:`, error);
+    console.error("Error fetching debate analyses:", error);
     return [];
   }
-}
+};
