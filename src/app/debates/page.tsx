@@ -137,7 +137,7 @@ export default function DebatesPage() {
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="indent-5 form-input pl-10 py-3 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-800 focus:outline-none"
+                    className="indent-5 form-input pl-10 py-3 w-full rounded-md border-gray-300 shadow-sm"
                     placeholder="Search for debates"
                   />
                 </div>
