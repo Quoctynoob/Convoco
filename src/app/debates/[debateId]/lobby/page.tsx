@@ -402,6 +402,7 @@ export default function DebateLobbyPage() {
                     ? "Waiting for other participant to ready up..."
                     : "Click when you're ready to start the timed debate"}
                 </p>
+
               </>
             )}
           </div>
