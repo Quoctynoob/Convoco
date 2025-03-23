@@ -1,5 +1,6 @@
 // src/components/debate/DebateForm.tsx
 "use client";
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import {
@@ -30,12 +31,9 @@ export const DebateForm: React.FC = () => {
       return;
     }
 
-    // We'll use fixed values for description and rounds
     const description = `This is a debate on the topic: ${topic}. The creator has chosen to take the ${side} position.`;
-    const rounds = 2; // Fixed at 2 rounds based on your debate format
+    const rounds = 2;
 
-    // We'll pass the selected side as part of the debate creation
-    // You'll need to modify your createNewDebate function to handle this
     await createNewDebate(topic.trim(), description, rounds, user.id, side);
   };
 
@@ -111,18 +109,19 @@ export const DebateForm: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
-            <h3 className="font-medium text-blue-800 mb-2">Format</h3>
-            <p className="text-sm text-blue-700">
+          <div className="bg-gray-100 border border-gray-200 rounded-lg p-4">
+            <h3 className="font-medium text-black mb-2">Format</h3>
+            <p className="text-sm text-black">
               This debate will follow the standard 2-round format:
             </p>
-            <ul className="text-sm text-blue-700 list-disc list-inside mt-2 space-y-1">
+            <ul className="text-sm text-black list-disc list-inside mt-2 space-y-1">
               <li>Opening statements from both sides (4 minutes each)</li>
               <li>First round: Pro's argument with rebuttals (2 minutes each)</li>
               <li>Second round: Con's argument with rebuttals (2 minutes each)</li>
               <li>AI analysis will determine the winner based on argument strength, rebuttals, clarity, and evidence</li>
             </ul>
           </div>
+
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-700">{error}</p>
@@ -140,3 +139,5 @@ export const DebateForm: React.FC = () => {
     </Card>
   );
 };
+
+export default DebateForm;
