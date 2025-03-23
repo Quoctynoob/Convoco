@@ -369,11 +369,12 @@ export const addArgument = async (
 
 // AI ANALYSIS
 
-export const saveArgumentAnalysis = async (
-  analysis: Omit<AIAnalysis, "id">
-): Promise<string> => {
+export const saveArgumentAnalysis = async (analysis: Omit<AIAnalysis, 'id'>): Promise<string> => {
   try {
-    const docRef = await addDoc(collection(db, "analysis"), analysis);
+    const docRef = await addDoc(collection(db, "analyses"), {
+      ...analysis,
+      createdAt: Date.now()
+    });
     return docRef.id;
   } catch (error) {
     console.error("Error saving analysis:", error);
@@ -413,32 +414,26 @@ export async function addAIAnalysis(analysis: AIAnalysis): Promise<string> {
 }
 
 
-export async function getArgumentAnalysis(argumentId: string): Promise<AIAnalysis | null> {
+export const getArgumentAnalysis = async (argumentId: string): Promise<AIAnalysis | null> => {
   try {
-    // Query for analyses with the given argumentId
-    const querySnapshot = await getDocs(
-      query(
-        collection(db, "analyses"),
-        where("argumentId", "==", argumentId)
-      )
+    const q = query(
+      collection(db, "analyses"),
+      where("argumentId", "==", argumentId)
     );
     
+    const querySnapshot = await getDocs(q);
+    
     if (querySnapshot.empty) {
-      console.log(`No analysis found for argument ID: ${argumentId}`);
       return null;
     }
     
-    // Return the first matching analysis
-    const analysisDoc = querySnapshot.docs[0];
-    return { 
-      id: analysisDoc.id, 
-      ...analysisDoc.data() 
-    } as AIAnalysis;
+    const doc = querySnapshot.docs[0];
+    return { id: doc.id, ...doc.data() } as AIAnalysis;
   } catch (error) {
-    console.error(`Error getting analysis for argument ID ${argumentId}:`, error);
+    console.error("Error getting argument analysis:", error);
     return null;
   }
-}
+};
 
 
 export const markUserReady = async (
@@ -513,21 +508,32 @@ export const resetReadyState = async (debateId: string): Promise<void> => {
 
 export const getDebateAnalyses = async (debateId: string): Promise<AIAnalysis[]> => {
   try {
-    const q = query(
-      collection(db, "analyses"),
-      where("debateId", "==", debateId)
-    );
+    // First get all arguments for the debate
+    const args = await getDebateArguments(debateId);
     
-    const snapshot = await getDocs(q);
+    if (args.length === 0) return [];
+    
     const analyses: AIAnalysis[] = [];
     
-    snapshot.forEach((doc) => {
-      analyses.push({ id: doc.id, ...doc.data() } as AIAnalysis);
-    });
+    // Process in batches of 10 (Firestore limit for "in" queries)
+    for (let i = 0; i < args.length; i += 10) {
+      const batch = args.slice(i, i + 10).map(arg => arg.id);
+      
+      const q = query(
+        collection(db, "analyses"),
+        where("argumentId", "in", batch)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      
+      querySnapshot.forEach(doc => {
+        analyses.push({ id: doc.id, ...doc.data() } as AIAnalysis);
+      });
+    }
     
     return analyses;
   } catch (error) {
-    console.error("Error fetching debate analyses:", error);
+    console.error("Error getting analyses:", error);
     return [];
   }
 };

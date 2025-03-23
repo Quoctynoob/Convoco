@@ -4,8 +4,7 @@
 import { useState } from "react";
 import {
   analyzeArgument,
-  determineDebateWinner,
-  suggestDebateTopics,
+  determineDebateWinner
 } from "@/lib/gemini/api";
 import { Debate } from "@/types/Debate";
 import { Argument, AIAnalysis } from "@/types/Argument";
@@ -47,7 +46,7 @@ export const useGemini = () => {
 
   const determineWinner = async (
     debate: Debate,
-    debateArguments: Argument[], // Changed from 'arguments' to 'debateArguments'
+    debateArguments: Argument[],
     analyses: AIAnalysis[],
     creator: User,
     opponent: User
@@ -58,7 +57,7 @@ export const useGemini = () => {
     try {
       const result = await determineDebateWinner(
         debate,
-        debateArguments, // Make sure to use the renamed parameter here
+        debateArguments,
         analyses,
         creator,
         opponent
@@ -75,27 +74,11 @@ export const useGemini = () => {
     }
   };
 
-  const getSuggestedTopics = async (): Promise<string[]> => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const topics = await suggestDebateTopics();
-      return topics;
-    } catch (e) {
-      const errorMessage =
-        e instanceof Error ? e.message : "Unknown error fetching topics";
-      setError(errorMessage);
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Removed getSuggestedTopics function
 
   return {
     analyzeDebateArgument,
     determineWinner,
-    getSuggestedTopics,
     loading,
     error,
   };

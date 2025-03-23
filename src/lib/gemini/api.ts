@@ -1,416 +1,197 @@
-// src/lib/gemini/api.ts
-import { Debate, DebateStatus } from "@/types/Debate";
-import { Argument, AIAnalysis, FactCheck } from "@/types/Argument";
-import { User } from "@/types/User";
-import { addAIAnalysis } from "@/lib/firebase/firestore";
+import { model } from './client';
+import { Debate } from '@/types/Debate';
+import { Argument, AIAnalysis } from '@/types/Argument';
+import { User } from '@/types/User';
+import { saveArgumentAnalysis } from '@/lib/firebase/firestore';
 
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
-const MODEL = 'gemini-2.0-flash';
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+// Helper to truncate text for token savings
+const truncateText = (text: string, maxLength: number = 500): string => {
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
+};
 
-async function callGeminiAPI(prompt: string): Promise<string> {
-  try {
-    if (!API_KEY) {
-      console.warn('No Gemini API key found. Using mock response.');
-      return mockGeminiResponse(prompt);
-    }
-
-    const response = await fetch(`${API_URL}?key=${API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024,
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Gemini API Error:', errorData);
-      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    
-    if (data.candidates && 
-        data.candidates[0] && 
-        data.candidates[0].content && 
-        data.candidates[0].content.parts && 
-        data.candidates[0].content.parts[0] &&
-        data.candidates[0].content.parts[0].text) {
-      return data.candidates[0].content.parts[0].text;
-    }
-    
-    throw new Error('Unexpected API response format');
-  } catch (error) {
-    console.error('Error calling Gemini API:', error);
-    return mockGeminiResponse(prompt);
-  }
-}
-
-function mockGeminiResponse(prompt: string): string {
-  if (prompt.includes('analyze the following argument')) {
-    return JSON.stringify({
-      score: 7.5,
-      analysis: "This argument presents several strong points and uses evidence effectively. The logical flow is clear, though some claims could benefit from additional support. Overall, the argument demonstrates a good understanding of the topic and presents a persuasive case.",
-      factCheck: [
-        {
-          claim: "Example claim from the argument",
-          verified: true,
-          explanation: "This claim is generally accurate based on available data."
-        }
-      ],
-      suggestedCounterpoints: [
-        "Consider addressing alternative explanations for the evidence presented.",
-        "The economic impact argument could be challenged with recent studies.",
-        "There are ethical considerations not addressed in this argument."
-      ]
-    });
-  } else if (prompt.includes('determine the winner')) {
-    return JSON.stringify({
-      winnerId: prompt.includes('creatorId') ? prompt.split('creatorId":"')[1].split('"')[0] : "user123",
-      explanation: "After analyzing both participants' arguments, this debater demonstrated stronger reasoning, better evidence usage, and more effective rebuttals to opposing points. Their arguments were more logically consistent and grounded in factual information."
-    });
-  } else if (prompt.includes('suggest debate topics')) {
-    return JSON.stringify([
-      "Should artificial intelligence development be regulated by international law?",
-      "Is universal basic income a viable solution to technological unemployment?",
-      "Should social media platforms be legally responsible for content moderation?",
-      "Is space exploration a worthwhile investment given Earth's current challenges?",
-      "Should gene editing in humans be allowed for non-medical purposes?"
-    ]);
-  }
-  
-  return "Mock response for testing purposes. Please add your API key for actual functionality.";
-}
-
-// Fix for analyzeArgument function in api.ts
-
-export async function analyzeArgument(
+// Analyze a debate argument with minimal token usage
+export const analyzeArgument = async (
   debate: Debate,
   argument: Argument,
   previousArguments: Argument[],
   creator: User,
   opponent: User
-): Promise<AIAnalysis> {
+): Promise<AIAnalysis> => {
   try {
-    console.log("Analyzing argument:", argument.id);
+    // Only use most recent previous argument to save tokens
+    const lastArgument = previousArguments.length > 0
+      ? previousArguments[previousArguments.length - 1]
+      : null;
     
-    const previousArgsContext = previousArguments.map(arg => {
-      const user = arg.userId === creator.id ? creator.username : opponent.username;
-      const position = arg.userId === creator.id 
-        ? (debate.creatorSide === 'affirmative' ? 'Affirmative' : 'Negative')
-        : (debate.creatorSide === 'affirmative' ? 'Negative' : 'Affirmative');
-      
-      return `${user} (${position}, Round ${arg.round}): "${arg.content}"`;
-    }).join('\n\n');
-    
-    const currentUser = argument.userId === creator.id ? creator : opponent;
-    const position = argument.userId === creator.id 
-      ? (debate.creatorSide === 'affirmative' ? 'Affirmative' : 'Negative')
-      : (debate.creatorSide === 'affirmative' ? 'Negative' : 'Affirmative');
-    
+    // Highly condensed prompt
     const prompt = `
-You are an expert debate judge and fact-checker. Please analyze the following argument from a debate.
+Debate analysis task:
+TOPIC: ${debate.topic}
+SIDE: ${argument.userId === creator.id ? creator.username : opponent.username} (${argument.side === 'creator' ? debate.creatorSide : (debate.creatorSide === 'affirmative' ? 'negative' : 'affirmative')})
+ROUND: ${argument.round}/${debate.rounds}
 
-DEBATE TOPIC: "${debate.topic}"
-DEBATE DESCRIPTION: "${debate.description}"
+ARGUMENT:
+${truncateText(argument.content, 800)}
 
-${previousArgsContext ? `PREVIOUS ARGUMENTS:\n${previousArgsContext}\n\n` : ''}
+${lastArgument ? `PREVIOUS ARGUMENT:
+${truncateText(lastArgument.content, 300)}` : ''}
 
-CURRENT ARGUMENT TO ANALYZE:
-${currentUser.username} (${position}, Round ${argument.round}): "${argument.content}"
+Return JSON only:
+{"score":(1-10),"content":"brief analysis","factCheck":[{"claim":"claim text","verified":true/false,"explanation":"why"}],"suggestedCounterpoints":["point1","point2"]}`;
 
-Analyze this argument and provide:
-1. A score from 1-10
-2. A detailed analysis of the argument's strengths and weaknesses
-3. Fact-checking for any claims made (identify 2-3 key claims and verify them)
-4. 3 suggested counterpoints that the opponent could make
-
-Return your analysis as a JSON object with the following format:
-{
-  "score": number,
-  "analysis": "detailed analysis text",
-  "factCheck": [
-    {
-      "claim": "quoted claim from the argument",
-      "verified": boolean,
-      "explanation": "explanation of verification or issues"
-    }
-  ],
-  "suggestedCounterpoints": [
-    "counterpoint 1",
-    "counterpoint 2",
-    "counterpoint 3"
-  ]
-}
-`;
-
-    const responseText = await callGeminiAPI(prompt);
+    // Call Gemini API
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
     
-    let parsed;
+    // Safe parsing with fallback
+    let analysisData;
     try {
-      parsed = JSON.parse(responseText);
+      analysisData = JSON.parse(responseText);
     } catch (e) {
-      console.error("Failed to parse Gemini API response as JSON:", e);
-      console.log("Raw response:", responseText);
-      parsed = {
-        score: 7.0,
-        analysis: "The system was unable to generate a detailed analysis. This is a fallback analysis.",
+      console.error("Failed to parse Gemini response:", e);
+      analysisData = {
+        score: 5,
+        content: "Analysis unavailable due to processing error.",
         factCheck: [],
-        suggestedCounterpoints: []
+        suggestedCounterpoints: ["Address the main points more directly"]
       };
     }
     
-    const analysis: AIAnalysis = {
-      id: `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+    // Create analysis object with all required properties
+    const analysis: Omit<AIAnalysis, 'id'> = {
       argumentId: argument.id,
-      debateId: argument.debateId, // Add this line to fix error
-      userId: argument.userId,
-      round: argument.round,
-      score: parsed.score || 7.0,
-      content: parsed.analysis || "No analysis provided", 
-      factCheck: parsed.factCheck || [],
-      suggestedCounterpoints: parsed.suggestedCounterpoints || [],
-      createdAt: Date.now()
+      debateId: debate.id,  // Add missing debateId
+      createdAt: Date.now(), // Add missing createdAt
+      score: analysisData.score || 5,
+      content: analysisData.content || "No analysis provided",
+      factCheck: analysisData.factCheck || [],
+      suggestedCounterpoints: analysisData.suggestedCounterpoints || []
     };
     
-    try {
-      await addAIAnalysis(analysis);
-    } catch (error) {
-      console.error("Error saving analysis to Firestore:", error);
-    }
+    // Save to Firebase
+    const analysisId = await saveArgumentAnalysis(analysis);
+    return { ...analysis, id: analysisId };
     
-    return analysis;
   } catch (error) {
-    console.error("Error in analyzeArgument:", error);
-    
-    const fallbackAnalysis: AIAnalysis = {
-      id: `fallback_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+    console.error("Error analyzing argument:", error);
+    // Fallback if API fails - with all required properties
+    const fallbackAnalysis: Omit<AIAnalysis, 'id'> = {
       argumentId: argument.id,
-      debateId: argument.debateId, // Add this line to fix error
-      userId: argument.userId,
-      round: argument.round, 
-      score: 5.0,
-      content: "The system encountered an error analyzing this argument. This is a fallback analysis.",
+      debateId: debate.id,  // Add missing debateId
+      createdAt: Date.now(), // Add missing createdAt
+      score: 5,
+      content: "Unable to analyze this argument due to a technical issue.",
       factCheck: [],
-      suggestedCounterpoints: [],
-      createdAt: Date.now()
+      suggestedCounterpoints: []
     };
     
     try {
-      await addAIAnalysis(fallbackAnalysis);
-    } catch (saveError) {
-      console.error("Error saving fallback analysis:", saveError);
+      const analysisId = await saveArgumentAnalysis(fallbackAnalysis);
+      return { ...fallbackAnalysis, id: analysisId };
+    } catch (e) {
+      return { ...fallbackAnalysis, id: 'error' };
     }
-    
-    return fallbackAnalysis;
   }
-}
+};
 
-export async function determineDebateWinner(
+// Determine winner with minimal token usage
+export const determineDebateWinner = async (
   debate: Debate,
   debateArguments: Argument[],
   analyses: AIAnalysis[],
   creator: User,
   opponent: User
-): Promise<{ winnerId: string; explanation: string }> {
+): Promise<{ winnerId: string; explanation: string }> => {
   try {
-    console.log("Determining debate winner for:", debate.id);
-    
-    if (debate.forfeitedBy) {
-      const winnerId = debate.forfeitedBy === creator.id ? opponent.id : creator.id;
-      return {
-        winnerId,
-        explanation: `${debate.forfeitedBy === creator.id ? creator.username : opponent.username} forfeited the debate.`
-      };
-    }
-    
+    // Get average scores to reduce token needs
     const creatorArgs = debateArguments.filter(arg => arg.userId === creator.id);
     const opponentArgs = debateArguments.filter(arg => arg.userId === opponent.id);
     
     const creatorScores = analyses
-      .filter(analysis => creatorArgs.some(arg => arg.id === analysis.argumentId))
-      .map(analysis => analysis.score);
-    
+      .filter(a => creatorArgs.some(arg => arg.id === a.argumentId))
+      .map(a => a.score);
     const opponentScores = analyses
-      .filter(analysis => opponentArgs.some(arg => arg.id === analysis.argumentId))
-      .map(analysis => analysis.score);
+      .filter(a => opponentArgs.some(arg => arg.id === a.argumentId))
+      .map(a => a.score);
     
-    const creatorAvgScore = creatorScores.length > 0
-      ? creatorScores.reduce((sum, score) => sum + score, 0) / creatorScores.length
+    const avgCreatorScore = creatorScores.length > 0
+      ? creatorScores.reduce((acc, val) => acc + val, 0) / creatorScores.length
       : 0;
-    
-    const opponentAvgScore = opponentScores.length > 0
-      ? opponentScores.reduce((sum, score) => sum + score, 0) / opponentScores.length
+    const avgOpponentScore = opponentScores.length > 0
+      ? opponentScores.reduce((acc, val) => acc + val, 0) / opponentScores.length
       : 0;
-    
-    const formattedArgs = debateArguments
-      .sort((a, b) => a.round - b.round || a.createdAt - b.createdAt)
-      .map(arg => {
-        const user = arg.userId === creator.id ? creator.username : opponent.username;
-        const position = arg.userId === creator.id 
-          ? (debate.creatorSide === 'affirmative' ? 'Affirmative' : 'Negative')
-          : (debate.creatorSide === 'affirmative' ? 'Negative' : 'Affirmative');
-        
-        return `${user} (${position}, Round ${arg.round}): "${arg.content}"`;
-      }).join('\n\n');
-    
+
+    // Ultra-minimal prompt
     const prompt = `
-You are an expert debate judge. Please determine the winner of the following debate.
+Debate winner determination:
+TOPIC: ${debate.topic}
+PARTICIPANTS:
+- ${creator.username} (${debate.creatorSide}): Score ${avgCreatorScore.toFixed(1)}/10
+- ${opponent.username} (${debate.creatorSide === 'affirmative' ? 'negative' : 'affirmative'}): Score ${avgOpponentScore.toFixed(1)}/10
 
-DEBATE TOPIC: "${debate.topic}"
-DEBATE DESCRIPTION: "${debate.description}"
+${creatorArgs.length > 0 ? `${creator.username}'s main point: ${truncateText(creatorArgs[creatorArgs.length-1].content, 100)}` : ''}
+${opponentArgs.length > 0 ? `${opponent.username}'s main point: ${truncateText(opponentArgs[opponentArgs.length-1].content, 100)}` : ''}
 
-DEBATERS:
-1. ${creator.username} (${debate.creatorSide === 'affirmative' ? 'Affirmative' : 'Negative'})
-2. ${opponent.username} (${debate.creatorSide === 'affirmative' ? 'Negative' : 'Affirmative'})
+Return JSON only:
+{"winnerId":"${creator.id}" or "${opponent.id}","explanation":"brief reason"}`;
 
-ARGUMENTS:
-${formattedArgs}
-
-AVERAGE SCORES:
-${creator.username}: ${creatorAvgScore.toFixed(2)}/10
-${opponent.username}: ${opponentAvgScore.toFixed(2)}/10
-
-Based on the arguments, determine which debater presented the stronger case overall.
-Consider:
-- Quality of reasoning and evidence
-- Effectiveness in addressing opponent's points
-- Clarity and persuasiveness
-- Adherence to logical principles
-
-Return your decision as a JSON object with the following format:
-{
-  "winnerId": "${creator.id}" or "${opponent.id}",
-  "explanation": "detailed explanation of why this debater won"
-}
-
-Note: The winnerId must be EXACTLY one of the two provided IDs, not the username.
-`;
-
-    const responseText = await callGeminiAPI(prompt);
+    // Call Gemini API
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
     
-    let decisionData;
+    // Parse JSON response safely
+    let winnerData;
     try {
-      decisionData = JSON.parse(responseText);
+      winnerData = JSON.parse(responseText);
     } catch (e) {
-      console.error("Failed to parse Gemini API response as JSON:", e);
-      console.log("Raw response:", responseText);
-      
-      const winnerId = creatorAvgScore >= opponentAvgScore ? creator.id : opponent.id;
+      console.error("Failed to parse Gemini winner response:", e);
+      // Fallback based on scores
+      const winnerId = avgCreatorScore >= avgOpponentScore ? creator.id : opponent.id;
       return {
         winnerId,
-        explanation: `Based on average argument scores, ${winnerId === creator.id ? creator.username : opponent.username} performed better.`
+        explanation: `${winnerId === creator.id ? creator.username : opponent.username} had stronger arguments overall.`
       };
     }
     
-    if (decisionData.winnerId !== creator.id && decisionData.winnerId !== opponent.id) {
-      console.error("Invalid winnerId returned by API:", decisionData.winnerId);
-      decisionData.winnerId = creatorAvgScore >= opponentAvgScore ? creator.id : opponent.id;
+    // Validate winner ID
+    if (winnerData.winnerId !== creator.id && winnerData.winnerId !== opponent.id) {
+      console.error("Invalid winnerId returned:", winnerData.winnerId);
+      return {
+        winnerId: avgCreatorScore >= avgOpponentScore ? creator.id : opponent.id,
+        explanation: winnerData.explanation || "Winner determined based on argument quality."
+      };
     }
     
     return {
-      winnerId: decisionData.winnerId,
-      explanation: decisionData.explanation || `${decisionData.winnerId === creator.id ? creator.username : opponent.username} presented the stronger case.`
+      winnerId: winnerData.winnerId,
+      explanation: winnerData.explanation || "Winner determined based on argument quality."
     };
-  } catch (error) {
-    console.error("Error in determineDebateWinner:", error);
     
+  } catch (error) {
+    console.error("Error determining winner:", error);
+    // Simple score-based fallback
     const creatorArgs = debateArguments.filter(arg => arg.userId === creator.id);
     const opponentArgs = debateArguments.filter(arg => arg.userId === opponent.id);
     
     const creatorScores = analyses
-      .filter(analysis => creatorArgs.some(arg => arg.id === analysis.argumentId))
-      .map(analysis => analysis.score);
-    
+      .filter(a => creatorArgs.some(arg => arg.id === a.argumentId))
+      .map(a => a.score);
     const opponentScores = analyses
-      .filter(analysis => opponentArgs.some(arg => arg.id === analysis.argumentId))
-      .map(analysis => analysis.score);
+      .filter(a => opponentArgs.some(arg => arg.id === a.argumentId))
+      .map(a => a.score);
     
-    const creatorAvgScore = creatorScores.length > 0
-      ? creatorScores.reduce((sum, score) => sum + score, 0) / creatorScores.length
+    const avgCreatorScore = creatorScores.length > 0
+      ? creatorScores.reduce((acc, val) => acc + val, 0) / creatorScores.length
+      : 0;
+    const avgOpponentScore = opponentScores.length > 0
+      ? opponentScores.reduce((acc, val) => acc + val, 0) / opponentScores.length
       : 0;
     
-    const opponentAvgScore = opponentScores.length > 0
-      ? opponentScores.reduce((sum, score) => sum + score, 0) / opponentScores.length
-      : 0;
-    
-    const winnerId = creatorAvgScore >= opponentAvgScore ? creator.id : opponent.id;
-    
+    const winnerId = avgCreatorScore >= avgOpponentScore ? creator.id : opponent.id;
     return {
       winnerId,
-      explanation: `The system encountered an error determining the debate winner. ${winnerId === creator.id ? creator.username : opponent.username} is declared the winner based on average argument scores.`
+      explanation: `${winnerId === creator.id ? creator.username : opponent.username} had stronger arguments based on AI scoring.`
     };
   }
-}
-
-export async function suggestDebateTopics(count = 5): Promise<string[]> {
-  try {
-    console.log("Suggesting debate topics");
-    
-    const prompt = `
-Suggest ${count} interesting, balanced, and engaging debate topics that would work well for a structured debate platform.
-
-The topics should:
-- Be balanced (people could reasonably argue either side)
-- Be engaging and thought-provoking
-- Cover a variety of domains (technology, ethics, society, etc.)
-- Be specific enough to debate effectively
-- Avoid extremely divisive political topics
-
-Return your suggestions as a JSON array of strings, like:
-["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5"]
-`;
-
-    const responseText = await callGeminiAPI(prompt);
-    
-    let topicsData;
-    try {
-      topicsData = JSON.parse(responseText);
-    } catch (e) {
-      console.error("Failed to parse Gemini API response as JSON:", e);
-      console.log("Raw response:", responseText);
-      
-      return [
-        "Should artificial intelligence development be regulated?",
-        "Is universal basic income a viable economic policy?",
-        "Should genetic engineering in humans be permitted?",
-        "Is space exploration a worthwhile investment?",
-        "Should social media platforms be responsible for content moderation?"
-      ];
-    }
-    
-    if (!Array.isArray(topicsData)) {
-      console.error("API did not return an array:", topicsData);
-      topicsData = [];
-    }
-    
-    return topicsData.slice(0, count);
-  } catch (error) {
-    console.error("Error in suggestDebateTopics:", error);
-    
-    return [
-      "Should artificial intelligence development be regulated?",
-      "Is universal basic income a viable economic policy?",
-      "Should genetic engineering in humans be permitted?",
-      "Is space exploration a worthwhile investment?",
-      "Should social media platforms be responsible for content moderation?"
-    ];
-  }
-}
+};
