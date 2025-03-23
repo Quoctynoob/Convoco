@@ -69,7 +69,7 @@ export const TabsTrigger = forwardRef<HTMLButtonElement, TabsTriggerProps>(
         ref={ref}
         className={cn(
           "flex-1 px-3 py-2 text-sm font-medium text-center rounded-md transition-all",
-          isActive ? "bg-white text-indigo-800 shadow-sm" : "text-gray-700 hover:text-gray-900 hover:bg-gray-200",
+          isActive ? "bg-white text-black shadow-sm" : "text-gray-700 hover:text-gray-900 hover:bg-gray-200",
           disabled && "opacity-50 cursor-not-allowed",
           className
         )}

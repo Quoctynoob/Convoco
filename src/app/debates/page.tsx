@@ -100,7 +100,7 @@ export default function DebatesPage() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto px-4 animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+      <div className="flex flex-col md:flex-row justify-between items-center rounded-xl my-10">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Debates</h1>
           <p className="mt-2 text-gray-600 max-w-2xl">
@@ -137,7 +137,7 @@ export default function DebatesPage() {
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="indent-5 form-input pl-10 py-3 w-full rounded-md border-gray-300 shadow-sm"
+                    className="indent-6 form-input pl-10 py-3 w-full rounded-md border-gray-300 shadow-sm"
                     placeholder="Search for debates"
                   />
                 </div>
