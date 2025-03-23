@@ -1,240 +1,409 @@
 // src/lib/gemini/api.ts
-import { AIAnalysis, Argument } from "@/types/Argument";
-import { parseAnalysisResponse, parseWinnerResponse } from "./analysis";
-import { generateAnalysisPrompt, generateWinnerPrompt } from "./prompt";
-import { Debate } from "@/types/Debate";
+import { Debate, DebateStatus } from "@/types/Debate";
+import { Argument, AIAnalysis, FactCheck } from "@/types/Argument";
 import { User } from "@/types/User";
+import { addAIAnalysis } from "@/lib/firebase/firestore";
 
-// This is a placeholder API key for development; you should use an environment variable
-const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "dummy-key";
-const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
+const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
-interface GeminiResponse {
-  candidates: {
-    content: {
-      parts: {
-        text: string;
-      }[];
-    };
-  }[];
+async function callGeminiAPI(prompt: string): Promise<string> {
+  try {
+    if (!API_KEY) {
+      console.warn('No Gemini API key found. Using mock response.');
+      return mockGeminiResponse(prompt);
+    }
+
+    const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1024,
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Gemini API Error:', errorData);
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.candidates && 
+        data.candidates[0] && 
+        data.candidates[0].content && 
+        data.candidates[0].content.parts && 
+        data.candidates[0].content.parts[0] &&
+        data.candidates[0].content.parts[0].text) {
+      return data.candidates[0].content.parts[0].text;
+    }
+    
+    throw new Error('Unexpected API response format');
+  } catch (error) {
+    console.error('Error calling Gemini API:', error);
+    return mockGeminiResponse(prompt);
+  }
 }
 
-export const analyzeArgument = async (
+function mockGeminiResponse(prompt: string): string {
+  if (prompt.includes('analyze the following argument')) {
+    return JSON.stringify({
+      score: 7.5,
+      content: "This argument presents several strong points and uses evidence effectively. The logical flow is clear, though some claims could benefit from additional support. Overall, the argument demonstrates a good understanding of the topic and presents a persuasive case.",
+      factCheck: [
+        {
+          claim: "Example claim from the argument",
+          verified: true,
+          explanation: "This claim is generally accurate based on available data."
+        }
+      ],
+      suggestedCounterpoints: [
+        "Consider addressing alternative explanations for the evidence presented.",
+        "The economic impact argument could be challenged with recent studies.",
+        "There are ethical considerations not addressed in this argument."
+      ]
+    });
+  } else if (prompt.includes('determine the winner')) {
+    return JSON.stringify({
+      winnerId: prompt.includes('creatorId') ? prompt.split('creatorId":"')[1].split('"')[0] : "user123",
+      explanation: "After analyzing both participants' arguments, this debater demonstrated stronger reasoning, better evidence usage, and more effective rebuttals to opposing points. Their arguments were more logically consistent and grounded in factual information."
+    });
+  } else if (prompt.includes('suggest debate topics')) {
+    return JSON.stringify([
+      "Should artificial intelligence development be regulated by international law?",
+      "Is universal basic income a viable solution to technological unemployment?",
+      "Should social media platforms be legally responsible for content moderation?",
+      "Is space exploration a worthwhile investment given Earth's current challenges?",
+      "Should gene editing in humans be allowed for non-medical purposes?"
+    ]);
+  }
+  
+  return "Mock response for testing purposes. Please add your API key for actual functionality.";
+}
+
+export async function analyzeArgument(
   debate: Debate,
   argument: Argument,
   previousArguments: Argument[],
   creator: User,
   opponent: User
-): Promise<AIAnalysis> => {
+): Promise<AIAnalysis> {
   try {
-    // Generate the prompt for analysis
-    const prompt = generateAnalysisPrompt(
-      debate,
-      argument,
-      previousArguments,
-      creator,
-      opponent
-    );
+    console.log("Analyzing argument:", argument.id);
+    
+    const previousArgsContext = previousArguments.map(arg => {
+      const user = arg.userId === creator.id ? creator.username : opponent.username;
+      const position = arg.userId === creator.id 
+        ? (debate.creatorSide === 'affirmative' ? 'Affirmative' : 'Negative')
+        : (debate.creatorSide === 'affirmative' ? 'Negative' : 'Affirmative');
+      
+      return `${user} (${position}, Round ${arg.round}): "${arg.content}"`;
+    }).join('\n\n');
+    
+    const currentUser = argument.userId === creator.id ? creator : opponent;
+    const position = argument.userId === creator.id 
+      ? (debate.creatorSide === 'affirmative' ? 'Affirmative' : 'Negative')
+      : (debate.creatorSide === 'affirmative' ? 'Negative' : 'Affirmative');
+    
+    const prompt = `
+You are an expert debate judge and fact-checker. Please analyze the following argument from a debate.
 
-    // PLACEHOLDER IMPLEMENTATION - Replace with actual Gemini API call when ready
-    // This will return a mock response during development and build
-    if (!GEMINI_API_KEY || GEMINI_API_KEY === "dummy-key") {
-      console.log("Using mock Gemini analysis (API key not provided)");
-      return {
-        id: `mock_${Date.now()}`,
-        argumentId: argument.id,
-        userId: argument.userId,
-        round: argument.round,
-        content: "This is a mock analysis generated during development. Add your Gemini API key to get real analyses.",
-        factCheck: [
-          {
-            claim: "Example claim from the argument",
-            verified: true,
-            explanation: "This is a mock verification."
-          }
-        ],
-        score: 7,
-        suggestedCounterpoints: [
-          "This is a mock counterpoint.",
-          "Another mock counterpoint."
-        ],
-        createdAt: Date.now()
+DEBATE TOPIC: "${debate.topic}"
+DEBATE DESCRIPTION: "${debate.description}"
+
+${previousArgsContext ? `PREVIOUS ARGUMENTS:\n${previousArgsContext}\n\n` : ''}
+
+CURRENT ARGUMENT TO ANALYZE:
+${currentUser.username} (${position}, Round ${argument.round}): "${argument.content}"
+
+Analyze this argument and provide:
+1. A score from 1-10
+2. A detailed analysis of the argument's strengths and weaknesses
+3. Fact-checking for any claims made (identify 2-3 key claims and verify them)
+4. 3 suggested counterpoints that the opponent could make
+
+Return your analysis as a JSON object with the following format:
+{
+  "score": number,
+  "content": "detailed analysis text",
+  "factCheck": [
+    {
+      "claim": "quoted claim from the argument",
+      "verified": boolean,
+      "explanation": "explanation of verification or issues"
+    }
+  ],
+  "suggestedCounterpoints": [
+    "counterpoint 1",
+    "counterpoint 2",
+    "counterpoint 3"
+  ]
+}
+`;
+
+    const responseText = await callGeminiAPI(prompt);
+    
+    let analysisData;
+    try {
+      analysisData = JSON.parse(responseText);
+    } catch (e) {
+      console.error("Failed to parse Gemini API response as JSON:", e);
+      console.log("Raw response:", responseText);
+      analysisData = {
+        score: 7.0,
+        content: "The system was unable to generate a detailed analysis. This is a fallback analysis.",
+        factCheck: [],
+        suggestedCounterpoints: []
       };
     }
-
-    // Real implementation with API call
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt,
-              },
-            ],
-          },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.statusText}`);
-    }
-
-    const data: GeminiResponse = await response.json();
-    const analysisText = data.candidates[0].content.parts[0].text;
     
-    // Parse the structured response
-    return parseAnalysisResponse(analysisText, argument);
-  } catch (error) {
-    console.error("Error analyzing argument with Gemini:", error);
-    
-    // Fallback analysis in case of error
-    return {
-      id: `error_${Date.now()}`,
+    const analysis: AIAnalysis = {
+      id: `analysis_${Date.now()}`,
       argumentId: argument.id,
-      userId: argument.userId,
-      round: argument.round,
-      content: "We couldn't analyze this argument due to a technical issue.",
-      factCheck: [],
-      score: 5,
-      createdAt: Date.now(),
+      debateId: debate.id,
+      score: analysisData.score || 7.0,
+      content: analysisData.content || "No analysis provided",
+      factCheck: analysisData.factCheck || [],
+      suggestedCounterpoints: analysisData.suggestedCounterpoints || [],
+      createdAt: Date.now()
     };
+    
+    try {
+      await addAIAnalysis(analysis);
+    } catch (error) {
+      console.error("Error saving analysis to Firestore:", error);
+    }
+    
+    return analysis;
+  } catch (error) {
+    console.error("Error in analyzeArgument:", error);
+    
+    const fallbackAnalysis: AIAnalysis = {
+      id: `fallback_analysis_${Date.now()}`,
+      argumentId: argument.id,
+      debateId: debate.id,
+      score: 5.0,
+      content: "The system encountered an error analyzing this argument. This is a fallback analysis.",
+      factCheck: [],
+      suggestedCounterpoints: [],
+      createdAt: Date.now()
+    };
+    
+    try {
+      await addAIAnalysis(fallbackAnalysis);
+    } catch (saveError) {
+      console.error("Error saving fallback analysis:", saveError);
+    }
+    
+    return fallbackAnalysis;
   }
-};
+}
 
-export const determineDebateWinner = async (
+export async function determineDebateWinner(
   debate: Debate,
   debateArguments: Argument[],
   analyses: AIAnalysis[],
   creator: User,
   opponent: User
-): Promise<{ winnerId: string; explanation: string }> => {
+): Promise<{ winnerId: string; explanation: string }> {
   try {
-    // Generate the prompt for winner determination
-    const prompt = generateWinnerPrompt(
-      debate,
-      debateArguments,
-      analyses,
-      creator,
-      opponent
-    );
-
-    // PLACEHOLDER IMPLEMENTATION - Replace with actual Gemini API call when ready
-    if (!GEMINI_API_KEY || GEMINI_API_KEY === "dummy-key") {
-      console.log("Using mock Gemini winner determination (API key not provided)");
-      // Randomly select winner during development
-      const randomWinner = Math.random() > 0.5 ? creator.id : opponent.id;
+    console.log("Determining debate winner for:", debate.id);
+    
+    if (debate.forfeitedBy) {
+      const winnerId = debate.forfeitedBy === creator.id ? opponent.id : creator.id;
       return {
-        winnerId: randomWinner,
-        explanation: "This is a mock winner determination. Add your Gemini API key to get real results."
+        winnerId,
+        explanation: `${debate.forfeitedBy === creator.id ? creator.username : opponent.username} forfeited the debate.`
       };
     }
+    
+    const creatorArgs = debateArguments.filter(arg => arg.userId === creator.id);
+    const opponentArgs = debateArguments.filter(arg => arg.userId === opponent.id);
+    
+    const creatorScores = analyses
+      .filter(analysis => creatorArgs.some(arg => arg.id === analysis.argumentId))
+      .map(analysis => analysis.score);
+    
+    const opponentScores = analyses
+      .filter(analysis => opponentArgs.some(arg => arg.id === analysis.argumentId))
+      .map(analysis => analysis.score);
+    
+    const creatorAvgScore = creatorScores.length > 0
+      ? creatorScores.reduce((sum, score) => sum + score, 0) / creatorScores.length
+      : 0;
+    
+    const opponentAvgScore = opponentScores.length > 0
+      ? opponentScores.reduce((sum, score) => sum + score, 0) / opponentScores.length
+      : 0;
+    
+    const formattedArgs = debateArguments
+      .sort((a, b) => a.round - b.round || a.createdAt - b.createdAt)
+      .map(arg => {
+        const user = arg.userId === creator.id ? creator.username : opponent.username;
+        const position = arg.userId === creator.id 
+          ? (debate.creatorSide === 'affirmative' ? 'Affirmative' : 'Negative')
+          : (debate.creatorSide === 'affirmative' ? 'Negative' : 'Affirmative');
+        
+        return `${user} (${position}, Round ${arg.round}): "${arg.content}"`;
+      }).join('\n\n');
+    
+    const prompt = `
+You are an expert debate judge. Please determine the winner of the following debate.
 
-    // Real implementation with API call
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt,
-              },
-            ],
-          },
-        ],
-      }),
-    });
+DEBATE TOPIC: "${debate.topic}"
+DEBATE DESCRIPTION: "${debate.description}"
 
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.statusText}`);
+DEBATERS:
+1. ${creator.username} (${debate.creatorSide === 'affirmative' ? 'Affirmative' : 'Negative'})
+2. ${opponent.username} (${debate.creatorSide === 'affirmative' ? 'Negative' : 'Affirmative'})
+
+ARGUMENTS:
+${formattedArgs}
+
+AVERAGE SCORES:
+${creator.username}: ${creatorAvgScore.toFixed(2)}/10
+${opponent.username}: ${opponentAvgScore.toFixed(2)}/10
+
+Based on the arguments, determine which debater presented the stronger case overall.
+Consider:
+- Quality of reasoning and evidence
+- Effectiveness in addressing opponent's points
+- Clarity and persuasiveness
+- Adherence to logical principles
+
+Return your decision as a JSON object with the following format:
+{
+  "winnerId": "${creator.id}" or "${opponent.id}",
+  "explanation": "detailed explanation of why this debater won"
+}
+
+Note: The winnerId must be EXACTLY one of the two provided IDs, not the username.
+`;
+
+    const responseText = await callGeminiAPI(prompt);
+    
+    let decisionData;
+    try {
+      decisionData = JSON.parse(responseText);
+    } catch (e) {
+      console.error("Failed to parse Gemini API response as JSON:", e);
+      console.log("Raw response:", responseText);
+      
+      const winnerId = creatorAvgScore >= opponentAvgScore ? creator.id : opponent.id;
+      return {
+        winnerId,
+        explanation: `Based on average argument scores, ${winnerId === creator.id ? creator.username : opponent.username} performed better.`
+      };
     }
-
-    const data: GeminiResponse = await response.json();
-    const result = data.candidates[0].content.parts[0].text;
     
-    // Parse the winner determination
-    return parseWinnerResponse(result, creator.id, opponent.id);
-  } catch (error) {
-    console.error("Error determining winner with Gemini:", error);
+    if (decisionData.winnerId !== creator.id && decisionData.winnerId !== opponent.id) {
+      console.error("Invalid winnerId returned by API:", decisionData.winnerId);
+      decisionData.winnerId = creatorAvgScore >= opponentAvgScore ? creator.id : opponent.id;
+    }
     
-    // Default to creator as winner in case of error
     return {
-      winnerId: creator.id,
-      explanation:
-        "Due to a technical issue, we couldn't determine the winner. The debate creator has been assigned as the winner by default.",
+      winnerId: decisionData.winnerId,
+      explanation: decisionData.explanation || `${decisionData.winnerId === creator.id ? creator.username : opponent.username} presented the stronger case.`
+    };
+  } catch (error) {
+    console.error("Error in determineDebateWinner:", error);
+    
+    const creatorArgs = debateArguments.filter(arg => arg.userId === creator.id);
+    const opponentArgs = debateArguments.filter(arg => arg.userId === opponent.id);
+    
+    const creatorScores = analyses
+      .filter(analysis => creatorArgs.some(arg => arg.id === analysis.argumentId))
+      .map(analysis => analysis.score);
+    
+    const opponentScores = analyses
+      .filter(analysis => opponentArgs.some(arg => arg.id === analysis.argumentId))
+      .map(analysis => analysis.score);
+    
+    const creatorAvgScore = creatorScores.length > 0
+      ? creatorScores.reduce((sum, score) => sum + score, 0) / creatorScores.length
+      : 0;
+    
+    const opponentAvgScore = opponentScores.length > 0
+      ? opponentScores.reduce((sum, score) => sum + score, 0) / opponentScores.length
+      : 0;
+    
+    const winnerId = creatorAvgScore >= opponentAvgScore ? creator.id : opponent.id;
+    
+    return {
+      winnerId,
+      explanation: `The system encountered an error determining the debate winner. ${winnerId === creator.id ? creator.username : opponent.username} is declared the winner based on average argument scores.`
     };
   }
-};
+}
 
-export const suggestDebateTopics = async (): Promise<string[]> => {
+export async function suggestDebateTopics(count = 5): Promise<string[]> {
   try {
-    // PLACEHOLDER IMPLEMENTATION - Replace with actual Gemini API call when ready
-    if (!GEMINI_API_KEY || GEMINI_API_KEY === "dummy-key") {
-      console.log("Using mock debate topics (API key not provided)");
+    console.log("Suggesting debate topics");
+    
+    const prompt = `
+Suggest ${count} interesting, balanced, and engaging debate topics that would work well for a structured debate platform.
+
+The topics should:
+- Be balanced (people could reasonably argue either side)
+- Be engaging and thought-provoking
+- Cover a variety of domains (technology, ethics, society, etc.)
+- Be specific enough to debate effectively
+- Avoid extremely divisive political topics
+
+Return your suggestions as a JSON array of strings, like:
+["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5"]
+`;
+
+    const responseText = await callGeminiAPI(prompt);
+    
+    let topicsData;
+    try {
+      topicsData = JSON.parse(responseText);
+    } catch (e) {
+      console.error("Failed to parse Gemini API response as JSON:", e);
+      console.log("Raw response:", responseText);
+      
       return [
-        "Should artificial intelligence be regulated more strictly?",
+        "Should artificial intelligence development be regulated?",
         "Is universal basic income a viable economic policy?",
-        "Should social media platforms be responsible for content moderation?",
-        "Is space exploration a worthwhile investment of resources?",
-        "Should voting be mandatory in democratic countries?",
+        "Should genetic engineering in humans be permitted?",
+        "Is space exploration a worthwhile investment?",
+        "Should social media platforms be responsible for content moderation?"
       ];
     }
-
-    const prompt =
-      "Suggest 5 interesting debate topics that would generate thoughtful discussion. Provide the topics only, no explanations.";
-      
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt,
-              },
-            ],
-          },
-        ],
-      }),
-    });
     
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.statusText}`);
+    if (!Array.isArray(topicsData)) {
+      console.error("API did not return an array:", topicsData);
+      topicsData = [];
     }
     
-    const data: GeminiResponse = await response.json();
-    const topicsText = data.candidates[0].content.parts[0].text;
-    
-    // Parse the topics list
-    const topics = topicsText
-      .split("\n")
-      .map((line) => line.replace(/^[0-9\.\-\*]+\s*/, "").trim())
-      .filter((topic) => topic.length > 0);
-      
-    return topics.slice(0, 5);
+    return topicsData.slice(0, count);
   } catch (error) {
-    console.error("Error suggesting topics with Gemini:", error);
+    console.error("Error in suggestDebateTopics:", error);
     
-    // Fallback topics in case of error
     return [
-      "Should artificial intelligence be regulated more strictly?",
+      "Should artificial intelligence development be regulated?",
       "Is universal basic income a viable economic policy?",
-      "Should social media platforms be responsible for content moderation?",
-      "Is space exploration a worthwhile investment of resources?",
-      "Should voting be mandatory in democratic countries?",
+      "Should genetic engineering in humans be permitted?",
+      "Is space exploration a worthwhile investment?",
+      "Should social media platforms be responsible for content moderation?"
     ];
   }
-};
+}

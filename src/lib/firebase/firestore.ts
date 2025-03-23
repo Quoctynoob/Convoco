@@ -2,6 +2,7 @@
 import {
   collection,
   doc,
+  setDoc,
   getDoc,
   getDocs,
   addDoc,
@@ -380,28 +381,54 @@ export const saveArgumentAnalysis = async (
   }
 };
 
-export const getArgumentAnalysis = async (
-  argumentId: string
-): Promise<AIAnalysis | null> => {
+export async function addAIAnalysis(analysis: AIAnalysis): Promise<string> {
   try {
-    const q = query(
-      collection(db, "analysis"),
-      where("argumentId", "==", argumentId)
-    );
-
-    const querySnapshot = await getDocs(q);
-
-    if (querySnapshot.empty) {
-      return null;
+    const analysisRef = doc(collection(db, "analyses"));
+    const analysisId = analysisRef.id;
+    
+    if (!analysis.id) {
+      analysis.id = analysisId;
     }
-
-    const doc = querySnapshot.docs[0]; // Get the first analysis found
-    return { id: doc.id, ...doc.data() } as AIAnalysis;
+    
+    if (!analysis.createdAt) {
+      analysis.createdAt = Date.now();
+    }
+    
+    await setDoc(analysisRef, analysis);
+    return analysisId;
   } catch (error) {
-    console.error("Error getting argument analysis:", error);
+    console.error("Error adding AI analysis:", error);
     throw error;
   }
-};
+}
+
+
+/**
+ * Gets AI analysis for a specific argument
+ * @param argumentId The argument ID
+ * @returns The AI analysis or null if not found
+ */
+export async function getArgumentAnalysis(argumentId: string): Promise<AIAnalysis | null> {
+  try {
+    const querySnapshot = await getDocs(
+      query(
+        collection(db, "analyses"),
+        where("argumentId", "==", argumentId)
+      )
+    );
+    
+    if (querySnapshot.empty) {
+      console.log(`No analysis found for argument ID: ${argumentId}`);
+      return null;
+    }
+    
+    const analysisDoc = querySnapshot.docs[0];
+    return { id: analysisDoc.id, ...analysisDoc.data() } as AIAnalysis;
+  } catch (error) {
+    console.error(`Error getting analysis for argument ID ${argumentId}:`, error);
+    return null;
+  }
+}
 
 export const markUserReady = async (
   debateId: string,
