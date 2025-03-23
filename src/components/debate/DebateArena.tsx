@@ -228,6 +228,7 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
           currentTurn: undefined, // Use null instead of undefined for Firestore
         };
       } else if (side === "creator") {
+        
         // Switch to opponent's turn
         updates = {
           currentTurn: debate.opponentId,
