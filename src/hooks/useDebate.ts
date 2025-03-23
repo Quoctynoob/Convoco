@@ -21,7 +21,7 @@ import {
 import { Debate, DebateStatus } from "@/types/Debate";
 import { Argument, AIAnalysis } from "@/types/Argument";
 import { User } from "@/types/User";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, collection, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase/firebase";
 
 export const useDebateCreation = () => {
@@ -54,7 +54,7 @@ export const useDebateCreation = () => {
         description,
         creatorId,
         creatorSide: side,
-        status: DebateStatus.PENDING,
+        status: DebateStatus.PENDING,  // Make sure it's set to PENDING
         rounds,
         currentRound: 0,
         arguments: [],
@@ -63,7 +63,9 @@ export const useDebateCreation = () => {
       const debateId = await createDebate(newDebate);
       console.log("Debate created with ID:", debateId);
       
+      // Slight delay to ensure Firestore is updated
       setTimeout(() => {
+        // Add created=true parameter to refresh debates when redirected back
         router.push(`/debates/${debateId}?created=true`);
       }, 500);
       
@@ -97,6 +99,7 @@ export const useDebate = (debateId: string) => {
     if (!debateId) return;
     setLoading(true);
     const debateRef = doc(db, "debates", debateId);
+    // Real-time listener for debate updates
     const unsubscribe = onSnapshot(
       debateRef,
       (doc) => {
@@ -115,9 +118,12 @@ export const useDebate = (debateId: string) => {
       }
     );
 
+    // Load debate arguments
     const loadArguments = async () => {
       try {
+        // Get all arguments for the debate without complex ordering
         const args = await getDebateArguments(debateId);
+        // The sorting is now handled inside getDebateArguments
         setDebateArguments(args);
       } catch (e) {
         console.error("Error loading arguments:", e);
@@ -201,100 +207,110 @@ export const useDebate = (debateId: string) => {
     }
   };
 
- // Replace the submitArgument function in useDebate.ts
+  // New function to mark a user as ready in the lobby
+  const markReady = async (userId: string, isCreator: boolean) => {
+    if (!debate) return false;
+    try {
+      await markUserReady(debateId, userId, isCreator);
+      return true;
+    } catch (e) {
+      const errorMessage =
+        e instanceof Error ? e.message : "Unknown error marking as ready";
+      setError(errorMessage);
+      return false;
+    }
+  };
 
-const submitArgument = async (
-  content: string,
-  userId: string,
-  side: "creator" | "opponent",
-  creator: User,
-  opponent: User | null
-) => {
-  if (!debate || !opponent) return false;
-  try {
-    if (debate.status !== DebateStatus.ACTIVE) {
-      setError("This debate is not active");
-      return false;
-    }
-    if (debate.currentTurn !== userId) {
-      setError("It is not your turn");
-      return false;
-    }
-    const currentRound = debate.currentRound;
-    
-    // Add the argument
-    const newArgument: Omit<Argument, "id" | "createdAt"> = {
-      debateId,
-      userId,
-      content,
-      round: currentRound,
-      side,
-    };
-    const argumentId = await addArgument(newArgument);
-    const argument = {
-      id: argumentId,
-      ...newArgument,
-      createdAt: Date.now(),
-    };
-    
-    // Get AI analysis
-    const previousArgs = debateArguments.filter(
-      (arg) =>
-        arg.round < currentRound ||
-        (arg.round === currentRound && arg.userId !== userId)
-    );
-    const analysis = await analyzeArgument(
-      debate,
-      argument,
-      previousArgs,
-      creator,
-      opponent
-    );
-    
-    // Determine next turn or complete debate
-    let updates: Partial<Debate> = {};
-    if (side === "opponent" && currentRound >= debate.rounds) {
-      // Debate is complete, determine winner
-      const allArguments = [...debateArguments, argument];
-      const analysisArray: AIAnalysis[] = [];
-      if (analysis) {
-        analysisArray.push(analysis);
+  const submitArgument = async (
+    content: string,
+    userId: string,
+    side: "creator" | "opponent",
+    creator: User,
+    opponent: User | null
+  ) => {
+    if (!debate || !opponent) return false;
+    try {
+      if (debate.status !== DebateStatus.ACTIVE) {
+        setError("This debate is not active");
+        return false;
       }
-      const result = await determineDebateWinner(
+      if (debate.currentTurn !== userId) {
+        setError("It is not your turn");
+        return false;
+      }
+      const currentRound = debate.currentRound;
+      // Add the argument
+      const newArgument: Omit<Argument, "id" | "createdAt"> = {
+        debateId,
+        userId,
+        content,
+        round: currentRound,
+        side,
+      };
+      const argumentId = await addArgument(newArgument);
+      const argument = {
+        id: argumentId,
+        ...newArgument,
+        createdAt: Date.now(),
+      };
+      // Get AI analysis
+      const previousArgs = debateArguments.filter(
+        (arg) =>
+          arg.round < currentRound ||
+          (arg.round === currentRound && arg.userId !== userId)
+      );
+      const analysis = await analyzeArgument(
         debate,
-        allArguments,
-        analysisArray,
+        argument,
+        previousArgs,
         creator,
         opponent
       );
-      
-      // FIXED: Don't include currentTurn in the updates object
-      updates = {
-        status: DebateStatus.COMPLETED,
-        winner: result.winnerId,
-      };
-    } else if (side === "creator") {
-      // Switch to opponent's turn
-      updates = {
-        currentTurn: debate.opponentId,
-      };
-    } else {
-      // Switch back to creator's turn and increment round
-      updates = {
-        currentRound: currentRound + 1,
-        currentTurn: debate.creatorId,
-      };
+      // Determine next turn or complete debate
+      let updates: Partial<Debate> = {};
+      if (side === "opponent" && currentRound >= debate.rounds) {
+        // Debate is complete, determine winner
+        const allArguments = [...debateArguments, argument];
+        // Fixed part - Ensure aiAnalysis is treated as an array of AIAnalysis objects
+        // If debate.aiAnalysis is an array of string IDs, we need to handle that differently
+        const analysisArray: AIAnalysis[] = [];
+        // Handle the case where aiAnalysis might not exist or be empty
+        if (analysis) {
+          analysisArray.push(analysis);
+        }
+        const result = await determineDebateWinner(
+          debate,
+          allArguments,
+          analysisArray,
+          creator,
+          opponent
+        );
+        updates = {
+          status: DebateStatus.COMPLETED,
+          winner: result.winnerId,
+          currentTurn: undefined,
+        };
+      } else if (side === "creator") {
+        // Switch to opponent's turn
+        updates = {
+          currentTurn: debate.opponentId,
+        };
+      } else {
+        // Switch back to creator's turn and increment round
+        updates = {
+          currentRound: currentRound + 1,
+          currentTurn: debate.creatorId,
+        };
+      }
+      await updateDebate(debateId, updates);
+      return true;
+    } catch (e) {
+      const errorMessage =
+        e instanceof Error ? e.message : "Unknown error submitting argument";
+      setError(errorMessage);
+      return false;
     }
-    await updateDebate(debateId, updates);
-    return true;
-  } catch (e) {
-    console.error("Error submitting argument:", e);
-    const errorMessage =
-      e instanceof Error ? e.message : "Unknown error submitting argument";
-    setError(errorMessage);
-    return false;
-  }
-};
+  };
 
   return {
     debate,
@@ -317,9 +333,11 @@ export const useDebateList = (userId?: string) => {
       setLoading(true);
       try {
         if (userId) {
+          // Load user's debates
           const userDebates = await getUserDebates(userId);
           setDebates(userDebates);
         } else {
+          // Load open debates
           const openDebates = await getOpenDebates();
           setDebates(openDebates);
         }
