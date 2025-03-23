@@ -12,6 +12,7 @@ import {
   addArgument,
   markUserReady,
   resetReadyState,
+  getDebateAnalyses,
 } from "@/lib/firebase/firestore";
 import {
   analyzeArgument,
@@ -221,7 +222,7 @@ export const useDebate = (debateId: string) => {
     }
   };
 
- // Replace the submitArgument function in useDebate.ts
+  // Replace the submitArgument function in useDebate.ts
 
 const submitArgument = async (
   content: string,
@@ -242,7 +243,9 @@ const submitArgument = async (
     }
     const currentRound = debate.currentRound;
     
-    // Add the argument
+    console.log(`Submitting argument for ${side} in round ${currentRound}`);
+    
+    // Step 1: Add the argument
     const newArgument: Omit<Argument, "id" | "createdAt"> = {
       debateId,
       userId,
@@ -250,65 +253,102 @@ const submitArgument = async (
       round: currentRound,
       side,
     };
+    
     const argumentId = await addArgument(newArgument);
+    console.log(`Argument added with ID: ${argumentId}`);
+    
     const argument = {
       id: argumentId,
       ...newArgument,
       createdAt: Date.now(),
     };
     
-    // Get AI analysis
-    const previousArgs = debateArguments.filter(
-      (arg) =>
-        arg.round < currentRound ||
-        (arg.round === currentRound && arg.userId !== userId)
-    );
-    const analysis = await analyzeArgument(
-      debate,
-      argument,
-      previousArgs,
-      creator,
-      opponent
-    );
-    
-    // Determine next turn or complete debate
-    let updates: Partial<Debate> = {};
-    if (side === "opponent" && currentRound >= debate.rounds) {
-      // Debate is complete, determine winner
-      const allArguments = [...debateArguments, argument];
-      const analysisArray: AIAnalysis[] = [];
-      if (analysis) {
-        analysisArray.push(analysis);
-      }
-      const result = await determineDebateWinner(
+    // Step 2: Get AI analysis
+    try {
+      console.log(`Getting AI analysis for argument: ${argumentId}`);
+      const previousArgs = debateArguments.filter(
+        (arg) =>
+          arg.round < currentRound ||
+          (arg.round === currentRound && arg.userId !== userId)
+      );
+      
+      const analysis = await analyzeArgument(
         debate,
-        allArguments,
-        analysisArray,
+        argument,
+        previousArgs,
         creator,
         opponent
       );
+      console.log(`Analysis created with score: ${analysis.score}`);
+    } catch (analysisError) {
+      console.error("Error during analysis:", analysisError);
+      // Continue even if analysis fails
+    }
+    
+    // Step 3: Check if this is the final argument
+    let updates: Partial<Debate> = {};
+    
+    if (side === "opponent" && currentRound >= debate.rounds) {
+      console.log("Final argument submitted - completing debate");
       
-      // FIXED: Don't include currentTurn in the updates object
-      updates = {
-        status: DebateStatus.COMPLETED,
-        winner: result.winnerId,
-      };
+      try {
+        // First update status
+        await updateDebate(debateId, {
+          status: DebateStatus.COMPLETED
+        });
+        console.log("Debate status updated to COMPLETED");
+        
+        // Then fetch all arguments and analyses for winner determination
+        const allArguments = await getDebateArguments(debateId);
+        const analyses = await getDebateAnalyses(debateId);
+        
+        try {
+          // Determine winner
+          const result = await determineDebateWinner(
+            debate,
+            allArguments,
+            analyses,
+            creator,
+            opponent
+          );
+          console.log(`Winner determined: ${result.winnerId}`);
+          
+          // Update with winner
+          await updateDebate(debateId, {
+            winner: result.winnerId
+          });
+          console.log("Winner updated in debate");
+        } catch (winnerError) {
+          console.error("Error determining winner:", winnerError);
+          // If we can't determine winner, default to creator
+          await updateDebate(debateId, {
+            winner: creator.id
+          });
+        }
+      } catch (completionError) {
+        console.error("Error completing debate:", completionError);
+        throw completionError;
+      }
     } else if (side === "creator") {
       // Switch to opponent's turn
       updates = {
         currentTurn: debate.opponentId,
       };
+      await updateDebate(debateId, updates);
+      console.log(`Debate turn updated to opponent: ${debate.opponentId}`);
     } else {
       // Switch back to creator's turn and increment round
       updates = {
         currentRound: currentRound + 1,
         currentTurn: debate.creatorId,
       };
+      await updateDebate(debateId, updates);
+      console.log(`Round incremented to ${currentRound + 1} and turn set to creator`);
     }
-    await updateDebate(debateId, updates);
+    
     return true;
   } catch (e) {
-    console.error("Error submitting argument:", e);
+    console.error("Error in submitArgument:", e);
     const errorMessage =
       e instanceof Error ? e.message : "Unknown error submitting argument";
     setError(errorMessage);

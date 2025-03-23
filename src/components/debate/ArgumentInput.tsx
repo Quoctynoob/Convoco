@@ -1,9 +1,10 @@
 // src/components/debate/ArgumentInput.tsx
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { Argument } from "@/types/Argument";
 import { User } from "@/types/User";
+import SpeechToTextButton from "./SpeechToTextButton";
 
 interface ArgumentInputProps {
   onSubmit: (content: string) => void;
@@ -12,8 +13,8 @@ interface ArgumentInputProps {
   maxLength: number;
   previousArgument?: Argument | null;
   previousUser?: User | null;
+  timeLimit?: number; // Time limit in seconds
 }
-
 
 export const ArgumentInput: React.FC<ArgumentInputProps> = ({
   onSubmit,
@@ -22,8 +23,40 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
   maxLength,
   previousArgument,
   previousUser,
+  timeLimit = 0, // Default to no time limit
 }) => {
   const [content, setContent] = useState("");
+  const [timeRemaining, setTimeRemaining] = useState(timeLimit);
+  const [timerActive, setTimerActive] = useState(timeLimit > 0);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Handle timer
+  useEffect(() => {
+    if (!timerActive || timeLimit <= 0) return;
+
+    // Initialize time remaining when component mounts
+    if (timeRemaining === timeLimit) {
+      setTimeRemaining(timeLimit);
+    }
+
+    // Set up the timer
+    const timer = setInterval(() => {
+      setTimeRemaining((prevTime) => {
+        if (prevTime <= 1) {
+          clearInterval(timer);
+          setTimerActive(false);
+          // Auto-submit when time is up
+          if (content.trim()) {
+            onSubmit(content.trim());
+          }
+          return 0;
+        }
+        return prevTime - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timerActive, timeLimit, timeRemaining, content, onSubmit]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,9 +66,35 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Submit on Enter (without shift) to make it more convenient
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (content.trim() && !loading) {
+        onSubmit(content.trim());
+        setContent("");
+      }
+    }
+  };
+
+  const handleSpeechResult = (text: string) => {
+    setContent((prev) => {
+      // If there's existing content, add a space before the new text
+      const newContent = prev ? `${prev} ${text}` : text;
+      return newContent.slice(0, maxLength);
+    });
+  };
+
   const remainingChars = maxLength - content.length;
   const isOverLimit = remainingChars < 0;
   const isNearLimit = remainingChars <= 200 && remainingChars > 0;
+
+  // Format time as MM:SS
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -81,8 +140,10 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
 
       <div className="rounded-lg overflow-hidden border border-gray-300 focus-within:border-purple-500 focus-within:ring-1 focus-within:ring-purple-500 transition-all">
         <textarea
+          ref={textareaRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="Present your argument here. Make your case with compelling evidence and clear reasoning. Address counterpoints from your opponent when appropriate."
           rows={8}
           className={`w-full p-4 focus:outline-none resize-none ${
@@ -136,17 +197,44 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
             <li>Stay focused on the debate topic</li>
             <li>Use logical reasoning to make your case</li>
           </ul>
+          
+          {/* Timer display */}
+          {timeLimit > 0 && (
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <span className="font-medium">Time Remaining: </span>
+              <span 
+                className={`font-bold ${
+                  timeRemaining < 30 
+                    ? "text-red-600" 
+                    : timeRemaining < 60 
+                    ? "text-amber-600" 
+                    : "text-green-600"
+                }`}
+              >
+                {formatTime(timeRemaining)}
+              </span>
+            </div>
+          )}
         </div>
-        <Button
-          type="submit"
-          disabled={loading || !content.trim() || isOverLimit}
-          isLoading={loading}
-          size="lg"
-          variant="gradient"
-          className="whitespace-nowrap self-end"
-        >
-          {loading ? "Submitting..." : "Submit Argument"}
-        </Button>
+        
+        <div className="flex flex-col gap-2">
+          {/* Speech-to-text button */}
+          <SpeechToTextButton 
+            onSpeechResult={handleSpeechResult}
+            className="self-end"
+          />
+          
+          <Button
+            type="submit"
+            disabled={loading || !content.trim() || isOverLimit}
+            isLoading={loading}
+            size="lg"
+            variant="gradient"
+            className="whitespace-nowrap self-end"
+          >
+            {loading ? "Submitting..." : "Submit Argument"}
+          </Button>
+        </div>
       </div>
     </form>
   );

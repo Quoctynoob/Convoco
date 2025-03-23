@@ -5,7 +5,8 @@ import { User } from "@/types/User";
 import { addAIAnalysis } from "@/lib/firebase/firestore";
 
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
-const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+const MODEL = 'gemini-2.0-flash';
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
 async function callGeminiAPI(prompt: string): Promise<string> {
   try {
@@ -66,7 +67,7 @@ function mockGeminiResponse(prompt: string): string {
   if (prompt.includes('analyze the following argument')) {
     return JSON.stringify({
       score: 7.5,
-      content: "This argument presents several strong points and uses evidence effectively. The logical flow is clear, though some claims could benefit from additional support. Overall, the argument demonstrates a good understanding of the topic and presents a persuasive case.",
+      analysis: "This argument presents several strong points and uses evidence effectively. The logical flow is clear, though some claims could benefit from additional support. Overall, the argument demonstrates a good understanding of the topic and presents a persuasive case.",
       factCheck: [
         {
           claim: "Example claim from the argument",
@@ -142,7 +143,7 @@ Analyze this argument and provide:
 Return your analysis as a JSON object with the following format:
 {
   "score": number,
-  "content": "detailed analysis text",
+  "analysis": "detailed analysis text",
   "factCheck": [
     {
       "claim": "quoted claim from the argument",
@@ -160,28 +161,30 @@ Return your analysis as a JSON object with the following format:
 
     const responseText = await callGeminiAPI(prompt);
     
-    let analysisData;
+    let parsed;
     try {
-      analysisData = JSON.parse(responseText);
+      parsed = JSON.parse(responseText);
     } catch (e) {
       console.error("Failed to parse Gemini API response as JSON:", e);
       console.log("Raw response:", responseText);
-      analysisData = {
+      parsed = {
         score: 7.0,
-        content: "The system was unable to generate a detailed analysis. This is a fallback analysis.",
+        analysis: "The system was unable to generate a detailed analysis. This is a fallback analysis.",
         factCheck: [],
         suggestedCounterpoints: []
       };
     }
     
     const analysis: AIAnalysis = {
-      id: `analysis_${Date.now()}`,
+      id: `temp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`, // Add temporary ID
       argumentId: argument.id,
+      userId: argument.userId,  // Include userId to match your existing implementation
+      round: argument.round,    // Include round to match your existing implementation
       debateId: debate.id,
-      score: analysisData.score || 7.0,
-      content: analysisData.content || "No analysis provided",
-      factCheck: analysisData.factCheck || [],
-      suggestedCounterpoints: analysisData.suggestedCounterpoints || [],
+      score: parsed.score || 7.0,
+      content: parsed.analysis || "No analysis provided", // Note: using 'analysis' from the response
+      factCheck: parsed.factCheck || [],
+      suggestedCounterpoints: parsed.suggestedCounterpoints || [],
       createdAt: Date.now()
     };
     
@@ -196,8 +199,10 @@ Return your analysis as a JSON object with the following format:
     console.error("Error in analyzeArgument:", error);
     
     const fallbackAnalysis: AIAnalysis = {
-      id: `fallback_analysis_${Date.now()}`,
+      id: `fallback_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       argumentId: argument.id,
+      userId: argument.userId,
+      round: argument.round, 
       debateId: debate.id,
       score: 5.0,
       content: "The system encountered an error analyzing this argument. This is a fallback analysis.",

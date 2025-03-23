@@ -383,18 +383,28 @@ export const saveArgumentAnalysis = async (
 
 export async function addAIAnalysis(analysis: AIAnalysis): Promise<string> {
   try {
-    const analysisRef = doc(collection(db, "analyses"));
-    const analysisId = analysisRef.id;
+    // Check if we already have an ID (which might be a temporary one)
+    let analysisId = analysis.id;
     
-    if (!analysis.id) {
+    // If it's a temporary ID (which starts with 'temp_'), create a new one
+    if (analysisId.startsWith('temp_') || analysisId.startsWith('fallback_')) {
+      const analysisRef = doc(collection(db, "analyses"));
+      analysisId = analysisRef.id;
       analysis.id = analysisId;
+    } else {
+      // Otherwise use existing document reference
+      const analysisRef = doc(db, "analyses", analysisId);
     }
     
+    // Ensure we have a timestamp
     if (!analysis.createdAt) {
       analysis.createdAt = Date.now();
     }
     
-    await setDoc(analysisRef, analysis);
+    // Save to Firestore
+    await setDoc(doc(db, "analyses", analysisId), analysis);
+    console.log("Analysis saved with ID:", analysisId);
+    
     return analysisId;
   } catch (error) {
     console.error("Error adding AI analysis:", error);
@@ -403,13 +413,9 @@ export async function addAIAnalysis(analysis: AIAnalysis): Promise<string> {
 }
 
 
-/**
- * Gets AI analysis for a specific argument
- * @param argumentId The argument ID
- * @returns The AI analysis or null if not found
- */
 export async function getArgumentAnalysis(argumentId: string): Promise<AIAnalysis | null> {
   try {
+    // Query for analyses with the given argumentId
     const querySnapshot = await getDocs(
       query(
         collection(db, "analyses"),
@@ -422,13 +428,18 @@ export async function getArgumentAnalysis(argumentId: string): Promise<AIAnalysi
       return null;
     }
     
+    // Return the first matching analysis
     const analysisDoc = querySnapshot.docs[0];
-    return { id: analysisDoc.id, ...analysisDoc.data() } as AIAnalysis;
+    return { 
+      id: analysisDoc.id, 
+      ...analysisDoc.data() 
+    } as AIAnalysis;
   } catch (error) {
     console.error(`Error getting analysis for argument ID ${argumentId}:`, error);
     return null;
   }
 }
+
 
 export const markUserReady = async (
   debateId: string,
@@ -497,5 +508,29 @@ export const resetReadyState = async (debateId: string): Promise<void> => {
   } catch (error) {
     console.error("Error resetting ready state:", error);
     throw error;
+  }
+}
+
+export async function getDebateAnalyses(debateId: string): Promise<AIAnalysis[]> {
+  try {
+    // Query for all analyses for this debate
+    const querySnapshot = await getDocs(
+      query(
+        collection(db, "analyses"),
+        where("debateId", "==", debateId),
+        orderBy("createdAt", "asc")
+      )
+    );
+    
+    // Convert to array of AIAnalysis objects
+    const analyses: AIAnalysis[] = [];
+    querySnapshot.forEach(doc => {
+      analyses.push({ id: doc.id, ...doc.data() } as AIAnalysis);
+    });
+    
+    return analyses;
+  } catch (error) {
+    console.error(`Error getting analyses for debate ID ${debateId}:`, error);
+    return [];
   }
 }
