@@ -262,7 +262,7 @@ export default function UserProfilePage() {
                   cy="75" 
                   r={radius} 
                   stroke="#a6a6a6" 
-                  strokeWidth="14" 
+                  strokeWidth="15" 
                   fill="none" 
                 />
                 <circle 
@@ -271,7 +271,7 @@ export default function UserProfilePage() {
                   r={radius} 
                   stroke="#0F0F0F" 
                   strokeLinecap="round"
-                  strokeWidth="14" 
+                  strokeWidth="15" 
                   fill="none" 
                   strokeDasharray={strokeDasharray}
                   strokeDashoffset={strokeDashoffset}
