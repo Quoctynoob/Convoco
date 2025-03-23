@@ -93,6 +93,7 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
   };
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+
       {/* Previous argument display */}
       {previousArgument && previousUser && (
         <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4">

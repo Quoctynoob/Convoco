@@ -13,10 +13,6 @@ export default function LeaderboardPage() {
   const { users, loading, error, sortBy, setSortBy, calculateWinRate } = useLeaderboard();
   const { user } = useAuth();
 
-  const handleTabChange = (value: string) => {
-    setSortBy(value as SortCriteria);
-  };
-
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -59,7 +55,8 @@ export default function LeaderboardPage() {
       <Tabs defaultValue="points" className="w-full">
         <div className="bg-white p-4 rounded-t-lg border border-gray-200 border-b-0">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Rankings</h2>
-          <TabsList className="grid grid-cols-4 gap-4">
+          <div className="p-1 bg-gray-100 rounded-md">
+          <TabsList className="grid grid-cols-4 gap-1">
             <TabsTrigger value="points" onClick={() => setSortBy('points')}>
               <div className="flex flex-col items-center">
                 <span className="text-sm font-medium">Points</span>
@@ -85,6 +82,7 @@ export default function LeaderboardPage() {
               </div>
             </TabsTrigger>
           </TabsList>
+          </div>
         </div>
 
         <TabsContent value="points">
@@ -161,8 +159,8 @@ export default function LeaderboardPage() {
         
         <div className="space-y-4">
           <div className="flex">
-            <div className="flex-shrink-0 h-6 w-6 rounded-full bg-purple-100 flex items-center justify-center mr-3">
-              <span className="text-purple-800 text-sm font-bold">1</span>
+            <div className="flex-shrink-0 h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+              <span className="text-gray-500 text-sm font-bold">1</span>
             </div>
             <div>
               <h4 className="text-md font-medium text-gray-900">Participate Regularly</h4>
@@ -171,8 +169,8 @@ export default function LeaderboardPage() {
           </div>
           
           <div className="flex">
-            <div className="flex-shrink-0 h-6 w-6 rounded-full bg-purple-100 flex items-center justify-center mr-3">
-              <span className="text-purple-800 text-sm font-bold">2</span>
+            <div className="flex-shrink-0 h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+              <span className="text-gray-500 text-sm font-bold">2</span>
             </div>
             <div>
               <h4 className="text-md font-medium text-gray-900">Use Evidence and Logic</h4>
@@ -181,8 +179,8 @@ export default function LeaderboardPage() {
           </div>
           
           <div className="flex">
-            <div className="flex-shrink-0 h-6 w-6 rounded-full bg-purple-100 flex items-center justify-center mr-3">
-              <span className="text-purple-800 text-sm font-bold">3</span>
+            <div className="flex-shrink-0 h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+              <span className="text-gray-500 text-sm font-bold">3</span>
             </div>
             <div>
               <h4 className="text-md font-medium text-gray-900">Address Counterarguments</h4>
@@ -191,8 +189,8 @@ export default function LeaderboardPage() {
           </div>
           
           <div className="flex">
-            <div className="flex-shrink-0 h-6 w-6 rounded-full bg-purple-100 flex items-center justify-center mr-3">
-              <span className="text-purple-800 text-sm font-bold">4</span>
+            <div className="flex-shrink-0 h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center mr-3">
+              <span className="text-gray-500 text-sm font-bold">4</span>
             </div>
             <div>
               <h4 className="text-md font-medium text-gray-900">Learn from Feedback</h4>

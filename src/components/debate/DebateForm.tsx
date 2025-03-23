@@ -18,28 +18,22 @@ export const DebateForm: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const { createNewDebate, loading, error } = useDebateCreation();
   const router = useRouter();
-
   const [topic, setTopic] = useState("");
   const [side, setSide] = useState<"affirmative" | "negative">("affirmative");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!isAuthenticated || !user) {
       router.push("/auth/login");
       return;
     }
-
     if (!topic.trim()) {
       return;
     }
 
-    // We'll use fixed values for description and rounds
     const description = `This is a debate on the topic: ${topic}. The creator has chosen to take the ${side} position.`;
-    const rounds = 2; // Fixed at 2 rounds based on your debate format
+    const rounds = 2;
 
-    // We'll pass the selected side as part of the debate creation
-    // You'll need to modify your createNewDebate function to handle this
     await createNewDebate(topic.trim(), description, rounds, user.id, side);
   };
 
@@ -62,12 +56,11 @@ export const DebateForm: React.FC = () => {
               id="topic"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-800 focus:outline-none focus:ring-0"
               placeholder="E.g., Should artificial intelligence be regulated more strictly?"
               required
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Choose Your Position
@@ -76,15 +69,15 @@ export const DebateForm: React.FC = () => {
               <div
                 className={`border rounded-lg p-4 cursor-pointer transition-all ${
                   side === "affirmative"
-                    ? "border-purple-500 bg-purple-50"
-                    : "border-gray-200 hover:border-purple-200 hover:bg-purple-50/30"
+                    ? "border-indigo-800 bg-indigo-50"
+                    : "border-gray-200 hover:border-indigo-200 hover:bg-indigo-50/30"
                 }`}
                 onClick={() => setSide("affirmative")}
               >
                 <div className="flex items-center mb-2">
                   <div
                     className={`w-5 h-5 rounded-full mr-2 ${
-                      side === "affirmative" ? "bg-purple-500" : "bg-gray-200"
+                      side === "affirmative" ? "bg-indigo-800" : "bg-gray-200"
                     }`}
                   ></div>
                   <h3 className="text-lg font-medium">Affirmative (Pro)</h3>
@@ -93,11 +86,10 @@ export const DebateForm: React.FC = () => {
                   I will argue in favor of the topic
                 </p>
               </div>
-
               <div
                 className={`border rounded-lg p-4 cursor-pointer transition-all ${
                   side === "negative"
-                    ? "border-red-500 bg-red-50"
+                    ? "border-red-700 bg-red-50"
                     : "border-gray-200 hover:border-red-200 hover:bg-red-50/30"
                 }`}
                 onClick={() => setSide("negative")}
@@ -105,7 +97,7 @@ export const DebateForm: React.FC = () => {
                 <div className="flex items-center mb-2">
                   <div
                     className={`w-5 h-5 rounded-full mr-2 ${
-                      side === "negative" ? "bg-red-500" : "bg-gray-200"
+                      side === "negative" ? "bg-red-700" : "bg-gray-200"
                     }`}
                   ></div>
                   <h3 className="text-lg font-medium">Negative (Con)</h3>
@@ -117,12 +109,12 @@ export const DebateForm: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
-            <h3 className="font-medium text-blue-800 mb-2">Format</h3>
-            <p className="text-sm text-blue-700">
+          <div className="bg-gray-100 border border-gray-200 rounded-lg p-4">
+            <h3 className="font-medium text-black mb-2">Format</h3>
+            <p className="text-sm text-black">
               This debate will follow the standard 2-round format:
             </p>
-            <ul className="text-sm text-blue-700 list-disc list-inside mt-2 space-y-1">
+            <ul className="text-sm text-black list-disc list-inside mt-2 space-y-1">
               <li>Opening statements from both sides (4 minutes each)</li>
               <li>First round: Pro's argument with rebuttals (2 minutes each)</li>
               <li>Second round: Con's argument with rebuttals (2 minutes each)</li>
@@ -135,7 +127,6 @@ export const DebateForm: React.FC = () => {
               <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
-
           <Button
             type="submit"
             disabled={!topic.trim() || loading}
@@ -148,3 +139,5 @@ export const DebateForm: React.FC = () => {
     </Card>
   );
 };
+
+export default DebateForm;

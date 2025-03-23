@@ -38,12 +38,12 @@ export const LoginForm: React.FC = () => {
   };
   return (
     <Card className="max-w-md mx-auto shadow-md border-gray-200">
-      <CardHeader className="text-center bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-gray-100 rounded-t-lg">
-        <CardTitle className="gradient-text text-2xl font-bold">
+      <CardHeader className="text-center bg-gradient-to-r from-indigo-50 to-gray-50 border-b border-gray-100 rounded-t-lg">
+        <CardTitle className="text-black text-2xl font-bold">
           {showForgotPassword ? "Reset Password" : "Log In"}
         </CardTitle>
         {!showForgotPassword && (
-          <p className="text-gray-600 mt-2">Sign in to continue to Convoco</p>
+          <p className="text-gray-400 mt-2">Sign in to continue to Convoco</p>
         )}
       </CardHeader>
       <CardContent className="pt-6 space-y-4">
