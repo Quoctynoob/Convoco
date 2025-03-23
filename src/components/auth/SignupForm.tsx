@@ -46,8 +46,8 @@ export const SignupForm: React.FC = () => {
   };
   return (
     <Card className="max-w-md mx-auto shadow-md border-gray-200">
-      <CardHeader className="text-center bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-gray-100 rounded-t-lg">
-        <CardTitle className="gradient-text text-2xl font-bold">
+      <CardHeader className="text-center bg-gradient-to-r from-indigo-50 to-gray-50 border-b border-gray-100 rounded-t-lg">
+        <CardTitle className="text-whitetext-2xl font-bold">
           Create Your Account
         </CardTitle>
         <p className="text-gray-600 mt-2">

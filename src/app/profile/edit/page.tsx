@@ -204,7 +204,7 @@ export default function EditProfilePage() {
                 <button
                   type="button"
                   onClick={handleAddTopic}
-                  className="bg-black text-white px-4 py-2 rounded-r-md hover:text-gray-300"
+                  className="bg-black text-white px-4 py-2 rounded-r-md hover:bg-gray-800"
                   disabled={!newTopic.trim()}
                 >
                   Add

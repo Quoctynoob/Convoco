@@ -99,7 +99,7 @@ export const Header: React.FC = () => {
                         className="h-10 w-10 rounded-full border-2 border-purple-200"
                       />
                     ) : (
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white font-medium text-lg">
+                      <div className="h-10 w-10 rounded-full bg-white border-2 border-black flex items-center justify-center text-black font-medium text-lg">
                         {user?.username.charAt(0).toUpperCase()}
                       </div>
                     )}
@@ -111,7 +111,7 @@ export const Header: React.FC = () => {
                     <div className="absolute right-0 mt-2 w-48 py-2 bg-white rounded-md shadow-lg z-10 border border-gray-100">
                       <Link
                         href="/profile/edit"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-indigo-600"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black"
                         onClick={() => setDropdownOpen(false)}
                       >
                         Settings
@@ -121,7 +121,7 @@ export const Header: React.FC = () => {
                           logout();
                           setDropdownOpen(false);
                         }}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-indigo-600"
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-black"
                       >
                         Sign out
                       </button>
@@ -144,7 +144,7 @@ export const Header: React.FC = () => {
                   <Button
                     variant="default"
                     size="sm"
-                    className="bg-gradient-to-r border-2 border-black"
+                    className="text-white bg-black hover:bg-gray-800"
                   >
                     Sign Up
                   </Button>

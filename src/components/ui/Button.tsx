@@ -8,7 +8,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-white text-black hover:bg-black hover:text-white shadow-sm",
+        default: "bg-black text-white hover:bg-gray-800 shadow-sm",
         destructive: "bg-red-500 text-white hover:bg-red-600 shadow-sm",
         outline:
           "border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900",
@@ -18,7 +18,7 @@ const buttonVariants = cva(
         gradient:
           "bg-gradient-to-r from-skyblue to-indigo-300 hover:from-indigo-300 hover:to-indigo-400 text-black shadow-sm",
         theme:
-          "bg-black text-white hover:bg-black shadow-sm"
+          "bg-black text-white hover:bg-gray-800 shadow-sm",
       },
       size: {
         default: "h-10 py-2 px-4",
