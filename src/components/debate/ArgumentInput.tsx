@@ -4,9 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { Argument } from "@/types/Argument";
 import { User } from "@/types/User";
-import SpeechToTextButton from "./SpeechToTextButton";
 import GoogleSpeechToTextButton from "./GoogleSpeechToTextButton";
-
 interface ArgumentInputProps {
   onSubmit: (content: string) => void;
   loading: boolean;
@@ -16,7 +14,6 @@ interface ArgumentInputProps {
   previousUser?: User | null;
   timeLimit?: number; // Time limit in seconds
 }
-
 export const ArgumentInput: React.FC<ArgumentInputProps> = ({
   onSubmit,
   loading,
@@ -30,16 +27,13 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
   const [timeRemaining, setTimeRemaining] = useState(timeLimit);
   const [timerActive, setTimerActive] = useState(timeLimit > 0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
   // Handle timer
   useEffect(() => {
     if (!timerActive || timeLimit <= 0) return;
-
     // Initialize time remaining when component mounts
     if (timeRemaining === timeLimit) {
       setTimeRemaining(timeLimit);
     }
-
     // Set up the timer
     const timer = setInterval(() => {
       setTimeRemaining((prevTime) => {
@@ -55,10 +49,8 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
         return prevTime - 1;
       });
     }, 1000);
-
     return () => clearInterval(timer);
   }, [timerActive, timeLimit, timeRemaining, content, onSubmit]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (content.trim() && !loading) {
@@ -66,7 +58,6 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
       setContent("");
     }
   };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Submit on Enter (without shift) to make it more convenient
     if (e.key === "Enter" && !e.shiftKey) {
@@ -77,31 +68,29 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
       }
     }
   };
-
   const handleSpeechResult = (text: string) => {
     setContent((prev) => {
       // If there's existing content, add a space before the new text
       const newContent = prev ? `${prev} ${text}` : text;
       return newContent.slice(0, maxLength);
     });
-    
+
     // Focus the textarea after adding speech
     if (textareaRef.current) {
       textareaRef.current.focus();
     }
   };
-
   const remainingChars = maxLength - content.length;
   const isOverLimit = remainingChars < 0;
   const isNearLimit = remainingChars <= 200 && remainingChars > 0;
-
   // Format time as MM:SS
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, "0")}:${secs
+      .toString()
+      .padStart(2, "0")}`;
   };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Previous argument display */}
@@ -143,7 +132,6 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
           </div>
         </div>
       )}
-
       <div className="rounded-lg overflow-hidden border border-gray-300 focus-within:border-purple-500 focus-within:ring-1 focus-within:ring-purple-500 transition-all">
         <textarea
           ref={textareaRef}
@@ -191,7 +179,6 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
           </div>
         </div>
       </div>
-
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md border border-gray-100">
           <span className="font-medium block mb-1">
@@ -203,17 +190,17 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
             <li>Stay focused on the debate topic</li>
             <li>Use logical reasoning to make your case</li>
           </ul>
-          
+
           {/* Timer display */}
           {timeLimit > 0 && (
             <div className="mt-3 pt-3 border-t border-gray-200">
               <span className="font-medium">Time Remaining: </span>
-              <span 
+              <span
                 className={`font-bold ${
-                  timeRemaining < 30 
-                    ? "text-red-600" 
-                    : timeRemaining < 60 
-                    ? "text-amber-600" 
+                  timeRemaining < 30
+                    ? "text-red-600"
+                    : timeRemaining < 60
+                    ? "text-amber-600"
                     : "text-green-600"
                 }`}
               >
@@ -222,19 +209,16 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
             </div>
           )}
         </div>
-        
+
         <div className="flex flex-col gap-2">
-          {/* Speech-to-text buttons */}
+          {/* Speech-to-text button */}
           <div className="flex space-x-2 self-end">
-            <SpeechToTextButton 
-              onSpeechResult={handleSpeechResult}
-            />
-            
             <GoogleSpeechToTextButton
               onSpeechResult={handleSpeechResult}
+              buttonText="Speech to Text"
             />
           </div>
-          
+
           <Button
             type="submit"
             disabled={loading || !content.trim() || isOverLimit}
