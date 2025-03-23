@@ -20,6 +20,8 @@ export interface AIAnalysis {
   id: string;
   argumentId: string;
   debateId: string;
+  userId?: string; // Added this field to match your implementation
+  round?: number;  // Added this field to match your implementation
   score: number;
   content: string;
   factCheck: FactCheck[];

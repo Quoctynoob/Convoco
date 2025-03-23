@@ -20,7 +20,7 @@ export interface Debate {
   status: DebateStatus;
   rounds: number;
   currentRound: number;
-  currentTurn?: string;
+  currentTurn?: string | null;
   createdAt: number;
   updatedAt: number;
   creatorReady?: boolean;    // New field to track if creator is ready

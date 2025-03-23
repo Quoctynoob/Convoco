@@ -10,10 +10,6 @@ import {
   query,
   where,
   orderBy,
-  serverTimestamp,
-  Timestamp,
-  DocumentReference,
-  DocumentData,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { Debate, DebateStatus } from "@/types/Debate";
@@ -369,11 +365,12 @@ export const addArgument = async (
 
 // AI ANALYSIS
 
-export const saveArgumentAnalysis = async (
-  analysis: Omit<AIAnalysis, "id">
-): Promise<string> => {
+export const saveArgumentAnalysis = async (analysis: Omit<AIAnalysis, 'id'>): Promise<string> => {
   try {
-    const docRef = await addDoc(collection(db, "analysis"), analysis);
+    const docRef = await addDoc(collection(db, "analyses"), {
+      ...analysis,
+      createdAt: Date.now()
+    });
     return docRef.id;
   } catch (error) {
     console.error("Error saving analysis:", error);
@@ -383,18 +380,28 @@ export const saveArgumentAnalysis = async (
 
 export async function addAIAnalysis(analysis: AIAnalysis): Promise<string> {
   try {
-    const analysisRef = doc(collection(db, "analyses"));
-    const analysisId = analysisRef.id;
+    // Check if we already have an ID (which might be a temporary one)
+    let analysisId = analysis.id;
     
-    if (!analysis.id) {
+    // If it's a temporary ID (which starts with 'temp_'), create a new one
+    if (analysisId.startsWith('temp_') || analysisId.startsWith('fallback_')) {
+      const analysisRef = doc(collection(db, "analyses"));
+      analysisId = analysisRef.id;
       analysis.id = analysisId;
+    } else {
+      // Otherwise use existing document reference
+      const analysisRef = doc(db, "analyses", analysisId);
     }
     
+    // Ensure we have a timestamp
     if (!analysis.createdAt) {
       analysis.createdAt = Date.now();
     }
     
-    await setDoc(analysisRef, analysis);
+    // Save to Firestore
+    await setDoc(doc(db, "analyses", analysisId), analysis);
+    console.log("Analysis saved with ID:", analysisId);
+    
     return analysisId;
   } catch (error) {
     console.error("Error adding AI analysis:", error);
@@ -403,32 +410,27 @@ export async function addAIAnalysis(analysis: AIAnalysis): Promise<string> {
 }
 
 
-/**
- * Gets AI analysis for a specific argument
- * @param argumentId The argument ID
- * @returns The AI analysis or null if not found
- */
-export async function getArgumentAnalysis(argumentId: string): Promise<AIAnalysis | null> {
+export const getArgumentAnalysis = async (argumentId: string): Promise<AIAnalysis | null> => {
   try {
-    const querySnapshot = await getDocs(
-      query(
-        collection(db, "analyses"),
-        where("argumentId", "==", argumentId)
-      )
+    const q = query(
+      collection(db, "analyses"),
+      where("argumentId", "==", argumentId)
     );
     
+    const querySnapshot = await getDocs(q);
+    
     if (querySnapshot.empty) {
-      console.log(`No analysis found for argument ID: ${argumentId}`);
       return null;
     }
     
-    const analysisDoc = querySnapshot.docs[0];
-    return { id: analysisDoc.id, ...analysisDoc.data() } as AIAnalysis;
+    const doc = querySnapshot.docs[0];
+    return { id: doc.id, ...doc.data() } as AIAnalysis;
   } catch (error) {
-    console.error(`Error getting analysis for argument ID ${argumentId}:`, error);
+    console.error("Error getting argument analysis:", error);
     return null;
   }
-}
+};
+
 
 export const markUserReady = async (
   debateId: string,
@@ -499,3 +501,35 @@ export const resetReadyState = async (debateId: string): Promise<void> => {
     throw error;
   }
 }
+
+export const getDebateAnalyses = async (debateId: string): Promise<AIAnalysis[]> => {
+  try {
+    // First get all arguments for the debate
+    const args = await getDebateArguments(debateId);
+    
+    if (args.length === 0) return [];
+    
+    const analyses: AIAnalysis[] = [];
+    
+    // Process in batches of 10 (Firestore limit for "in" queries)
+    for (let i = 0; i < args.length; i += 10) {
+      const batch = args.slice(i, i + 10).map(arg => arg.id);
+      
+      const q = query(
+        collection(db, "analyses"),
+        where("argumentId", "in", batch)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      
+      querySnapshot.forEach(doc => {
+        analyses.push({ id: doc.id, ...doc.data() } as AIAnalysis);
+      });
+    }
+    
+    return analyses;
+  } catch (error) {
+    console.error("Error getting analyses:", error);
+    return [];
+  }
+};
