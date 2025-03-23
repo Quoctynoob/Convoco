@@ -1,4 +1,3 @@
-// src/app/profile/[userId]/page.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -176,45 +175,73 @@ export default function UserProfilePage() {
     <div className="max-w-7xl mx-auto p-6">
       {/* Top Section: Debater Image, Statistics, and Profile */}
       <div className="flex flex-col lg:flex-row gap-6 mb-8">
-        {/* Left Section: Debater Image and Buttons */}
-        <div className="lg:w-1/4 flex flex-col items-center">
-          <div className="mb-6">
+        {/* Left Section: Debater Image and Buttons (Conditional) */}
+        <div className="lg:w-1/4 flex flex-col justify-center items-center min-h-[300px]">
+          <div>
             <Image
               src="/debater.jpg"
               alt="Debater"
-              width={200}
-              height={200}
+              width={isCurrentUser ? 200 : 300}  // Larger for others' profiles
+              height={isCurrentUser ? 200 : 300} // Larger for others' profiles
               className="rounded-lg"
             />
           </div>
-          <div className="flex flex-col gap-4 w-full">
-            {isCurrentUser && (
+          {isCurrentUser && (
+            <div className="flex flex-col gap-4 w-full mt-6">
               <Button
-                variant="gradient"
+                variant="default"
                 size="lg"
-                className="w-full"
+                className="w-full bg-black hover:bg-gray-800 text-white"
                 onClick={() => router.push("/debates/new")}
-                disabled={!isCurrentUser}
               >
                 Debate!
               </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Right Section: User Profile (First) */}
+        <div className="lg:w-2/5 bg-white p-6 rounded-lg shadow">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-4">
+            <h1 className="text-xl font-bold mb-4">{user.username}</h1>
+            {isCurrentUser && (
+              <Link href="/profile/edit">
+                <Button variant="outline" className="mt-2 md:mt-0">Edit Profile</Button>
+              </Link>
             )}
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full"
-              onClick={() => router.push("/debates")}
-            >
-              Dashboard
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full"
-              onClick={() => router.push("/leaderboard")}
-            >
-              Leaderboard
-            </Button>
+          </div>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {user.gender && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {user.gender}
+              </span>
+            )}
+            {user.location && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                {user.location}
+              </span>
+            )}
+          </div>
+          {user.bio ? (
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 mb-4">
+              <h2 className="text-sm font-semibold text-gray-700 mb-2">Bio</h2>
+              <p className="text-gray-600">{user.bio}</p>
+            </div>
+          ) : (
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 mb-4 text-center italic text-gray-500">
+              {isCurrentUser ? 'Add a bio to tell others about yourself' : 'This user has not added a bio yet'}
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {user.debateTopics.map((topic, index) => (
+              <span key={index} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
+                {topic}
+              </span>
+            ))}
           </div>
         </div>
 
@@ -281,59 +308,14 @@ export default function UserProfilePage() {
             </div>
           </div>
         </div>
-
-        {/* Right Section: User Profile */}
-        <div className="lg:w-2/5 bg-white p-6 rounded-lg shadow">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-4">
-            <h1 className="text-xl font-bold mb-4">{user.username}</h1>
-            {isCurrentUser && (
-              <Link href="/profile/edit">
-                <Button variant="outline" className="mt-2 md:mt-0">Edit Profile</Button>
-              </Link>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {user.gender && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                {user.gender}
-              </span>
-            )}
-            {user.location && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                {user.location}
-              </span>
-            )}
-          </div>
-          {user.bio ? (
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 mb-4">
-              <h2 className="text-sm font-semibold text-gray-700 mb-2">Bio</h2>
-              <p className="text-gray-600">{user.bio}</p>
-            </div>
-          ) : (
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 mb-4 text-center italic text-gray-500">
-              {isCurrentUser ? 'Add a bio to tell others about yourself' : 'This user has not added a bio yet'}
-            </div>
-          )}
-          <div className="flex flex-wrap gap-2">
-            {user.debateTopics.map((topic, index) => (
-              <span key={index} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
-                {topic}
-              </span>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Past Debates Section */}
       <div className="w-full bg-white p-6 rounded-lg shadow">
         <div className="flex flex-col md:flex-row justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Past Debate Records</h2>
-          <div className="relative mt-4 md:mt-0">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <div className="relative mt-4 md:mt-0 w-full md:w-64">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <svg
                 className="h-5 w-5 text-gray-400"
                 fill="none"
@@ -352,70 +334,71 @@ export default function UserProfilePage() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="form-input pl-10 py-2 w-full md:w-64 rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
-              placeholder="Search past debates..."
+              className="indent-5 form-input pl-10 py-2 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-800 focus:ring-1 focus:ring-indigo-800"
+              placeholder="Search past debates"
             />
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="p-3 text-left">Topic</th>
-                <th className="p-3 text-left">Opponent</th>
-                <th className="p-3 text-left">Score</th>
-                <th className="p-3 text-left">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredDebates.length > 0 ? (
-                filteredDebates.map((debate) => {
-                  const isWinner = debate.winner === userId;
-                  const score = isWinner ? 100 : 0;
-                  const opponentId = debate.creatorId === userId ? debate.opponentId : debate.creatorId;
-                  const opponent = opponentId ? opponents[debate.id] : null;
-                  const debateDate = debate.createdAt ? new Date(debate.createdAt).toLocaleDateString() : 'N/A';
+        <div>
+          {/* Column Headers */}
+          <div className="flex p-3 bg-gray-100 rounded-t-lg font-semibold text-gray-700">
+            <div className="flex-1 text-center">Topic</div>
+            <div className="flex-1 text-center">Opponent</div>
+            <div className="flex-1 text-center">Score</div>
+            <div className="flex-1 text-center">Result</div>
+            <div className="flex-1 text-center">Date</div>
+          </div>
+          {/* Debate Records */}
+          <div className="space-y-2 mt-2">
+            {filteredDebates.length > 0 ? (
+              filteredDebates.map((debate) => {
+                const isWinner = debate.winner === userId;
+                const score = isWinner ? 100 : 0;
+                const opponentId = debate.creatorId === userId ? debate.opponentId : debate.creatorId;
+                const opponent = opponentId ? opponents[debate.id] : null;
+                const debateDate = debate.createdAt ? new Date(debate.createdAt).toLocaleDateString() : 'N/A';
 
-                  return (
-                    <tr
-                      key={debate.id}
-                      className={`${
-                        isWinner ? 'bg-green-50' : 'bg-red-50'
-                      } hover:bg-gray-100 transition-colors duration-200`} // Added hover effect
+                return (
+                  <Link href={`/debates/${debate.id}`} key={debate.id}>
+                    <div
+                      className="p-4 border rounded-lg shadow-sm transition-all duration-200 hover:bg-purple-50 cursor-pointer flex items-center bg-white"
                     >
-                      <td className="p-3">
-                        <div>
-                          <Link href={`/debates/${debate.id}`} className="text-purple-600 hover:underline">
-                            {debate.topic}
-                          </Link>
-                          <p className="text-xs text-gray-500">
-                            {debate.rounds} rounds • {debate.status === 'completed' ? 'Completed' : 'In Progress'}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="p-3">
+                      <div className="flex-1 text-center">
+                        <Link href={`/debates/${debate.id}`} className="text-black hover:underline">
+                          {debate.topic}
+                        </Link>
+                        <p className="text-xs text-gray-500">
+                          {debate.rounds} rounds • {debate.status === 'completed' ? 'Completed' : 'In Progress'}
+                        </p>
+                      </div>
+                      <div className="flex-1 text-center">
                         {opponent ? (
-                          <Link href={`/profile/${opponentId}`} className="text-blue-600 hover:underline">
+                          <Link href={`/profile/${opponentId}`} className="text-black hover:underline">
                             {opponent.username}
                           </Link>
                         ) : (
                           'No Opponent'
                         )}
-                      </td>
-                      <td className="p-3">{score}%</td>
-                      <td className="p-3">{debateDate}</td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={4} className="p-3 text-center text-gray-500">
-                    No past debates found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                      </div>
+                      <div className="flex-1 text-center">{score}%</div>
+                      <div className="flex-1 text-center">
+                        <span
+                          className={`inline-block px-3 py-2 text-xs font-semibold text-black rounded-md ${
+                            isWinner ? 'bg-green-500/50' : 'bg-red-500/50'
+                          }`}
+                        >
+                          {isWinner ? 'Win' : 'Loss'}
+                        </span>
+                      </div>
+                      <div className="flex-1 text-center">{debateDate}</div>
+                    </div>
+                  </Link>
+                );
+              })
+            ) : (
+              <p className="text-center text-gray-500 p-3">No past debates found.</p>
+            )}
+          </div>
         </div>
       </div>
     </div>
