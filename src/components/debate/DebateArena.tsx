@@ -189,6 +189,7 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
     return prevArg.userId === creator.id ? creator : opponent;
   };
 
+  // Modified handleSubmitArgument function in DebateArena.tsx
   const handleSubmitArgument = async (content: string) => {
     if (!user || !isMyTurn || !opponent) return;
     setLoading(true);
@@ -225,14 +226,46 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
         creator,
         opponent
       );
+
       // Determine next turn or complete debate
       let updates: Partial<Debate> = {};
+
       if (side === "opponent" && debate.currentRound >= debate.rounds) {
-        // Debate will be completed after determining winner
-        updates = {
-          status: DebateStatus.COMPLETED,
-          currentTurn: undefined, // Use undefined instead of null
-        };
+        // For the final round, we need to determine a winner before completing the debate
+        const allArguments = [...debateArguments, argument];
+
+        // Create an array of analyses including the current one
+        let analysesArray: AIAnalysis[] = [];
+        // You might need to fetch all previous analyses here if not already loaded
+        // For now, we'll just use the current analysis
+        if (analysis) {
+          analysesArray.push(analysis);
+        }
+
+        try {
+          // Determine the winner
+          const result = await determineDebateWinner(
+            debate,
+            allArguments,
+            analysesArray,
+            creator,
+            opponent
+          );
+
+          // Complete the debate with the winner
+          updates = {
+            status: DebateStatus.COMPLETED,
+            winner: result.winnerId,
+            currentTurn: undefined,
+          };
+        } catch (winnerError) {
+          console.error("Error determining winner:", winnerError);
+          // If winner determination fails, still update the status but log the error
+          updates = {
+            status: DebateStatus.COMPLETED,
+            currentTurn: undefined,
+          };
+        }
       } else if (side === "creator") {
         // Switch to opponent's turn
         updates = {
@@ -245,12 +278,12 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
           currentTurn: debate.creatorId,
         };
       }
+
       // Update debate status
       await updateDebate(debate.id, updates);
 
       // Reset turn start time
       setCurrentTurnStartTime(null);
-
       return true;
     } catch (e) {
       setError("Failed to submit argument. Please try again.");
