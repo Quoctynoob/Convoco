@@ -19,7 +19,7 @@ import {
 import { Debate, DebateStatus } from "@/types/Debate";
 import { Argument, AIAnalysis } from "@/types/Argument";
 import { User } from "@/types/User";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase/firebase";
 
 export const useDebateCreation = () => {
@@ -52,7 +52,7 @@ export const useDebateCreation = () => {
         description,
         creatorId,
         creatorSide: side,
-        status: DebateStatus.PENDING,  // Make sure it's set to PENDING
+        status: DebateStatus.PENDING,
         rounds,
         currentRound: 0,
         arguments: [],
@@ -61,9 +61,7 @@ export const useDebateCreation = () => {
       const debateId = await createDebate(newDebate);
       console.log("Debate created with ID:", debateId);
       
-      // Slight delay to ensure Firestore is updated
       setTimeout(() => {
-        // Add created=true parameter to refresh debates when redirected back
         router.push(`/debates/${debateId}?created=true`);
       }, 500);
       
@@ -97,7 +95,6 @@ export const useDebate = (debateId: string) => {
     if (!debateId) return;
     setLoading(true);
     const debateRef = doc(db, "debates", debateId);
-    // Real-time listener for debate updates
     const unsubscribe = onSnapshot(
       debateRef,
       (doc) => {
@@ -116,12 +113,9 @@ export const useDebate = (debateId: string) => {
       }
     );
 
-    // Load debate arguments
     const loadArguments = async () => {
       try {
-        // Get all arguments for the debate without complex ordering
         const args = await getDebateArguments(debateId);
-        // The sorting is now handled inside getDebateArguments
         setDebateArguments(args);
       } catch (e) {
         console.error("Error loading arguments:", e);
@@ -158,6 +152,24 @@ export const useDebate = (debateId: string) => {
     }
   };
 
+  // Helper function to update user stats
+  const updateUserStats = async (userId: string, isWinner: boolean) => {
+    try {
+      console.log(`Updating stats for user ${userId}: isWinner=${isWinner}`);
+      const userRef = doc(db, "users", userId);
+      await updateDoc(userRef, {
+        "stats.totalDebates": increment(1),
+        "stats.wins": increment(isWinner ? 1 : 0),
+        "stats.losses": increment(isWinner ? 0 : 1),
+        updatedAt: Date.now(),
+      });
+      console.log(`Stats updated successfully for user ${userId}`);
+    } catch (e) {
+      console.error(`Error updating stats for user ${userId}:`, e);
+      throw new Error("Failed to update user stats");
+    }
+  };
+
   const submitArgument = async (
     content: string,
     userId: string,
@@ -176,7 +188,6 @@ export const useDebate = (debateId: string) => {
         return false;
       }
       const currentRound = debate.currentRound;
-      // Add the argument
       const newArgument: Omit<Argument, "id" | "createdAt"> = {
         debateId,
         userId,
@@ -190,7 +201,6 @@ export const useDebate = (debateId: string) => {
         ...newArgument,
         createdAt: Date.now(),
       };
-      // Get AI analysis
       const previousArgs = debateArguments.filter(
         (arg) =>
           arg.round < currentRound ||
@@ -203,15 +213,10 @@ export const useDebate = (debateId: string) => {
         creator,
         opponent
       );
-      // Determine next turn or complete debate
       let updates: Partial<Debate> = {};
       if (side === "opponent" && currentRound >= debate.rounds) {
-        // Debate is complete, determine winner
         const allArguments = [...debateArguments, argument];
-        // Fixed part - Ensure aiAnalysis is treated as an array of AIAnalysis objects
-        // If debate.aiAnalysis is an array of string IDs, we need to handle that differently
         const analysisArray: AIAnalysis[] = [];
-        // Handle the case where aiAnalysis might not exist or be empty
         if (analysis) {
           analysisArray.push(analysis);
         }
@@ -222,18 +227,23 @@ export const useDebate = (debateId: string) => {
           creator,
           opponent
         );
+        console.log("Debate completed. Winner:", result.winnerId);
         updates = {
           status: DebateStatus.COMPLETED,
           winner: result.winnerId,
           currentTurn: undefined,
         };
+        // Update user stats for both creator and opponent
+        const creatorWins = result.winnerId === debate.creatorId;
+        console.log(`Creator (${debate.creatorId}) wins: ${creatorWins}`);
+        console.log(`Opponent (${debate.opponentId}) wins: ${!creatorWins}`);
+        await updateUserStats(debate.creatorId, creatorWins);
+        await updateUserStats(debate.opponentId, !creatorWins);
       } else if (side === "creator") {
-        // Switch to opponent's turn
         updates = {
           currentTurn: debate.opponentId,
         };
       } else {
-        // Switch back to creator's turn and increment round
         updates = {
           currentRound: currentRound + 1,
           currentTurn: debate.creatorId,
@@ -269,11 +279,9 @@ export const useDebateList = (userId?: string) => {
       setLoading(true);
       try {
         if (userId) {
-          // Load user's debates
           const userDebates = await getUserDebates(userId);
           setDebates(userDebates);
         } else {
-          // Load open debates
           const openDebates = await getOpenDebates();
           setDebates(openDebates);
         }

@@ -22,14 +22,15 @@ export default function UserProfilePage() {
   
   const [user, setUser] = useState<User | null>(null);
   const [debates, setDebates] = useState<Debate[]>([]);
-  const [filteredDebates, setFilteredDebates] = useState<Debate[]>([]); // For search functionality
-  const [searchTerm, setSearchTerm] = useState(''); // For search input
+  const [filteredDebates, setFilteredDebates] = useState<Debate[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [opponents, setOpponents] = useState<{ [key: string]: User | null }>({}); // Store opponent profiles
   
   const isCurrentUser = currentUser?.id === userId;
 
-  // Load user data
+  // Load user data and debates
   useEffect(() => {
     if (authLoading) {
       console.log("Auth still loading, waiting...");
@@ -76,7 +77,24 @@ export default function UserProfilePage() {
           console.log("Loading user debates");
           const userDebates = await getUserDebates(userId);
           setDebates(userDebates);
-          setFilteredDebates(userDebates); // Initialize filtered debates
+          setFilteredDebates(userDebates);
+
+          // Fetch opponent profiles for each debate
+          const opponentPromises = userDebates.map(async (debate) => {
+            const opponentId = debate.creatorId === userId ? debate.opponentId : debate.creatorId;
+            if (opponentId) {
+              const opponentProfile = await getUserProfile(opponentId);
+              return { debateId: debate.id, opponent: opponentProfile };
+            }
+            return { debateId: debate.id, opponent: null };
+          });
+
+          const opponentResults = await Promise.all(opponentPromises);
+          const opponentsMap = opponentResults.reduce((acc, { debateId, opponent }) => {
+            acc[debateId] = opponent;
+            return acc;
+          }, {} as { [key: string]: User | null });
+          setOpponents(opponentsMap);
         }
       } catch (e) {
         console.error("Error loading profile:", e);
@@ -155,7 +173,7 @@ export default function UserProfilePage() {
   const strokeDashoffset = circumference - (winPercentage / 100) * circumference;
 
   return (
-    <div className="max-w-7xl mx-auto p-6"> {/* Increased from max-w-6xl to max-w-7xl */}
+    <div className="max-w-7xl mx-auto p-6">
       {/* Top Section: Debater Image, Statistics, and Profile */}
       <div className="flex flex-col lg:flex-row gap-6 mb-8">
         {/* Left Section: Debater Image and Buttons */}
@@ -170,15 +188,17 @@ export default function UserProfilePage() {
             />
           </div>
           <div className="flex flex-col gap-4 w-full">
-            <Button
-              variant="gradient"
-              size="lg"
-              className="w-full"
-              onClick={() => router.push("/debates/new")}
-              disabled={!isCurrentUser}
-            >
-              Debate!
-            </Button>
+            {isCurrentUser && (
+              <Button
+                variant="gradient"
+                size="lg"
+                className="w-full"
+                onClick={() => router.push("/debates/new")}
+                disabled={!isCurrentUser}
+              >
+                Debate!
+              </Button>
+            )}
             <Button
               variant="outline"
               size="lg"
@@ -351,18 +371,21 @@ export default function UserProfilePage() {
               {filteredDebates.length > 0 ? (
                 filteredDebates.map((debate) => {
                   const isWinner = debate.winner === userId;
-                  const score = isWinner ? 100 : 0; // Simplified scoring for demonstration; adjust as needed
+                  const score = isWinner ? 100 : 0;
                   const opponentId = debate.creatorId === userId ? debate.opponentId : debate.creatorId;
+                  const opponent = opponentId ? opponents[debate.id] : null;
                   const debateDate = debate.createdAt ? new Date(debate.createdAt).toLocaleDateString() : 'N/A';
 
                   return (
                     <tr
                       key={debate.id}
-                      className={isWinner ? 'bg-green-50' : 'bg-red-50'}
+                      className={`${
+                        isWinner ? 'bg-green-50' : 'bg-red-50'
+                      } hover:bg-gray-100 transition-colors duration-200`} // Added hover effect
                     >
                       <td className="p-3">
                         <div>
-                          <Link href={`/debates/${debate.id}`} className="text-blue-600 hover:underline">
+                          <Link href={`/debates/${debate.id}`} className="text-purple-600 hover:underline">
                             {debate.topic}
                           </Link>
                           <p className="text-xs text-gray-500">
@@ -371,9 +394,9 @@ export default function UserProfilePage() {
                         </div>
                       </td>
                       <td className="p-3">
-                        {opponentId ? (
+                        {opponent ? (
                           <Link href={`/profile/${opponentId}`} className="text-blue-600 hover:underline">
-                            Opponent
+                            {opponent.username}
                           </Link>
                         ) : (
                           'No Opponent'
@@ -394,50 +417,6 @@ export default function UserProfilePage() {
             </tbody>
           </table>
         </div>
-      </div>
-
-      {/* Recent Debates Section (with "Create New Debate" button removed) */}
-      <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200 mt-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-gray-900">Recent Debates</h2>
-        </div>
-        {debates.length > 0 ? (
-          <div className="space-y-4">
-            {debates.slice(0, 5).map((debate) => (
-              <Link key={debate.id} href={`/debates/${debate.id}`} className="block">
-                <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all">
-                  <h3 className="font-semibold text-lg text-gray-900">{debate.topic}</h3>
-                  <p className="text-sm text-gray-600 line-clamp-2 mt-1">{debate.description}</p>
-                  <div className="flex items-center mt-2 text-xs text-gray-500">
-                    <span className="font-medium">Format:</span>
-                    <span className="ml-1">{debate.rounds} rounds</span>
-                    <span className="mx-2">•</span>
-                    <span>
-                      {debate.status === 'completed' 
-                        ? 'Completed' 
-                        : debate.status === 'active' 
-                        ? 'In Progress' 
-                        : 'Pending'}
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8 bg-gray-50 rounded-lg">
-            <p className="text-gray-500">
-              {isCurrentUser 
-                ? "You haven't participated in any debates yet." 
-                : "This user hasn't participated in any debates yet."}
-            </p>
-            {isCurrentUser && (
-              <Link href="/debates/new" className="block mt-4">
-                <Button variant="outline">Start Your First Debate</Button>
-              </Link>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
