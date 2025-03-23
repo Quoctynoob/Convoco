@@ -334,7 +334,7 @@ export default function UserProfilePage() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="indent-5 form-input pl-10 py-2 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-800 focus:ring-1 focus:ring-indigo-800"
+              className="indent-5 form-input pl-10 py-2 w-full rounded-md border-gray-300 shadow-sm"
               placeholder="Search past debates"
             />
           </div>
