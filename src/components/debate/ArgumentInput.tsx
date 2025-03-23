@@ -15,6 +15,7 @@ interface ArgumentInputProps {
   previousUser?: User | null;
 }
 
+
 export const ArgumentInput: React.FC<ArgumentInputProps> = ({
   onSubmit,
   loading,
