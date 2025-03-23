@@ -1,6 +1,6 @@
 // src/app/api/speech-to-text/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { SpeechClient } from "@google-cloud/speech";
+import { SpeechClient, protos } from "@google-cloud/speech";
 
 // Initialize the Speech client
 const speechClient = new SpeechClient({
@@ -29,8 +29,10 @@ export async function POST(req: NextRequest) {
       content: audioBuffer.toString("base64"),
     };
 
+    // Use the proper enum value from the protos
     const config = {
-      encoding: "LINEAR16",
+      encoding:
+        protos.google.cloud.speech.v1.RecognitionConfig.AudioEncoding.LINEAR16,
       sampleRateHertz: 48000,
       languageCode: "en-US",
     };
