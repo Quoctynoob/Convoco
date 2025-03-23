@@ -32,7 +32,17 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
   // Handle timer completion
   const handleTimeUp = () => {
     if (content.trim()) {
-      handleSubmit(new Event("submit") as React.FormEvent);
+      // Use a custom function to submit without an event
+      handleSubmitOnTimeout();
+    }
+  };
+
+  // Separate function for timeout submission
+  const handleSubmitOnTimeout = () => {
+    if (content.trim() && !loading) {
+      onSubmit(content.trim());
+      setContent("");
+      setIsTimerActive(false);
     }
   };
 
