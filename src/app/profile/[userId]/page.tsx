@@ -1,9 +1,9 @@
-// src/app/profile/[userId]/page.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { getUserProfile } from '@/lib/firebase/auth';
@@ -15,36 +15,33 @@ import { useAuth } from '@/hooks/useAuth';
 export default function UserProfilePage() {
   const params = useParams();
   const userIdParam = params.userId;
-  // Convert to string if it's an array, or use as is if it's already a string
   const userId = Array.isArray(userIdParam) ? userIdParam[0] : userIdParam;
-  
   const { user: currentUser, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
   
   const [user, setUser] = useState<User | null>(null);
   const [debates, setDebates] = useState<Debate[]>([]);
+  const [filteredDebates, setFilteredDebates] = useState<Debate[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [opponents, setOpponents] = useState<{ [key: string]: User | null }>({}); // Store opponent profiles
   
-  // Check if viewing own profile
   const isCurrentUser = currentUser?.id === userId;
 
-  // Load user data
+  // Load user data and debates
   useEffect(() => {
-    // If auth is still loading, wait
     if (authLoading) {
       console.log("Auth still loading, waiting...");
       return;
     }
     
-    // If user is not authenticated, redirect to login
     if (!isAuthenticated) {
       console.log("User not authenticated, redirecting to login");
       router.push('/auth/login');
       return;
     }
     
-    // Handle the case when URL is /profile/me or similar shortcut
     if (userId === 'me' && currentUser) {
       console.log("Redirecting 'me' to actual user ID:", currentUser.id);
       router.push(`/profile/${currentUser.id}`);
@@ -57,14 +54,12 @@ export default function UserProfilePage() {
       setError(null);
       
       try {
-        // For current user, we can use the data we already have from context
         if (isCurrentUser && currentUser) {
           console.log("Using current user data from context");
           setUser(currentUser);
         } else if (userId) {
           console.log("Fetching user profile from database");
           const profile = await getUserProfile(userId);
-          
           if (!profile) {
             console.error("No profile found for userId:", userId);
             setError("User profile not found");
@@ -77,11 +72,28 @@ export default function UserProfilePage() {
           setError("User ID is missing");
         }
         
-        // Load debates if we have a valid userId
         if (userId) {
           console.log("Loading user debates");
           const userDebates = await getUserDebates(userId);
           setDebates(userDebates);
+          setFilteredDebates(userDebates);
+
+          // Fetch opponent profiles for each debate
+          const opponentPromises = userDebates.map(async (debate) => {
+            const opponentId = debate.creatorId === userId ? debate.opponentId : debate.creatorId;
+            if (opponentId) {
+              const opponentProfile = await getUserProfile(opponentId);
+              return { debateId: debate.id, opponent: opponentProfile };
+            }
+            return { debateId: debate.id, opponent: null };
+          });
+
+          const opponentResults = await Promise.all(opponentPromises);
+          const opponentsMap = opponentResults.reduce((acc, { debateId, opponent }) => {
+            acc[debateId] = opponent;
+            return acc;
+          }, {} as { [key: string]: User | null });
+          setOpponents(opponentsMap);
         }
       } catch (e) {
         console.error("Error loading profile:", e);
@@ -94,7 +106,18 @@ export default function UserProfilePage() {
     loadUserAndDebates();
   }, [userId, isCurrentUser, currentUser, authLoading, isAuthenticated, router]);
 
-  // Show loading state
+  // Filter debates based on search term
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredDebates(debates);
+    } else {
+      const filtered = debates.filter((debate) =>
+        debate.topic.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredDebates(filtered);
+    }
+  }, [searchTerm, debates]);
+
   if (authLoading || loading) {
     return (
       <div className="flex justify-center py-12">
@@ -103,14 +126,11 @@ export default function UserProfilePage() {
     );
   }
 
-  // Direct use of current user if it's the user's own profile
-  // This ensures we always show something even if profile loading fails
   if (isCurrentUser && currentUser && !user) {
     console.log("Fallback to current user data");
     setUser(currentUser);
   }
 
-  // Show error state - but only if we don't have user data
   if (error && !user) {
     return (
       <div className="text-center py-12">
@@ -120,7 +140,6 @@ export default function UserProfilePage() {
           <Button onClick={() => window.location.reload()}>
             Try Again
           </Button>
-          
           {isAuthenticated && (
             <div>
               <p className="text-sm text-gray-500 mb-2">Debug Info:</p>
@@ -134,7 +153,6 @@ export default function UserProfilePage() {
     );
   }
 
-  // Show user not found state - should be rare with the fallback above
   if (!user) {
     return (
       <div className="text-center py-12">
@@ -154,96 +172,50 @@ export default function UserProfilePage() {
   const strokeDashoffset = circumference - (winPercentage / 100) * circumference;
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="flex flex-col md:flex-row gap-6 mb-8">
-        {/* Section 1: Debate Statistics with Circle Chart */}
-        <div className="w-full md:w-1/2 bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-bold mb-4">Debate Statistics</h2>
-          <div className="flex items-center ">
-          {/* Circle chart */}
-            <div className="relative">
-              <svg width="150" height="150" viewBox="0 0 150 150">
-                {/* Background circle */}
-                <circle 
-                  cx="75" 
-                  cy="75" 
-                  r={radius} 
-                  stroke="#a6a6a6" 
-                  strokeWidth="12" 
-                  fill="none" 
-                />
-                
-                {/* Progress circle */}
-                <circle 
-                  cx="75" 
-                  cy="75" 
-                  r={radius} 
-                  stroke="#0F0F0F" 
-                  strokeWidth="12" 
-                  fill="none" 
-                  strokeDasharray={strokeDasharray}
-                  strokeDashoffset={strokeDashoffset}
-                  transform="rotate(-90 75 75)"
-                />
-
-              {/* Percentage text */}
-                <text 
-                  x="75" 
-                  y="70" 
-                  textAnchor="middle" 
-                  dominantBaseline="middle" 
-                  fontSize="24" 
-                  fontWeight="bold"
-                >
-                  {user.stats?.totalDebates || 0}
-                </text>
-                <text
-                  x="75"
-                  y="100"
-                  textAnchor="middle" 
-                  dominantBaseline="middle" 
-                  fontSize="16" 
-                  fontWeight="bold"
-                  >
-                  Total
-                </text>
-              </svg>
-            </div>
-            {/* Legend */}
-            <div className="ml-6">
-              <div className="flex items-center mb-2">
-                <div className="w-4 h-4 rounded-full bg-black mr-2"></div>
-                <p>Wins: {user.stats?.wins || 0}</p>
-              </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 rounded-full bg-[#a6a6a6] mr-2"></div>
-                <p>Losses: {user.stats?.losses || 0}</p>
-              </div>
-              <div className="mt-2 text-sm text-gray-500">
-                  Win Rate: {user.stats && user.stats.totalDebates > 0 
-                  ? winPercentage: 0}%
-              </div>
+    <div className="max-w-7xl mx-auto p-6">
+      {/* Top Section: Debater Image, Statistics, and Profile */}
+      <div className="flex flex-col lg:flex-row gap-6 mb-8">
+        {/* Left Section: Debater Image and Buttons (Conditional) */}
+        <div className="lg:w-1/4 flex flex-col justify-center items-center min-h-[300px]">
+          <div>
+            <Image
+              src="/debater.jpg"
+              alt="Debater"
+              width={isCurrentUser ? 200 : 300}  // Larger for others' profiles
+              height={isCurrentUser ? 200 : 300} // Larger for others' profiles
+              className="rounded-lg"
+            />
           </div>
+          {isCurrentUser && (
+            <div className="flex flex-col gap-4 w-full mt-6">
+              <Button
+                variant="default"
+                size="lg"
+                className="w-full bg-black hover:bg-gray-800 text-white"
+                onClick={() => router.push("/debates/new")}
+              >
+                Debate!
+              </Button>
+            </div>
+          )}
         </div>
-      </div>
-      {/* Section 2: User Profile */}
-    <div className="w-full md:w-1/2 bg-white p-6 rounded-lg shadow">
-    <div className="flex flex-col md:flex-row justify-between items-center mb-4">
-        <h1 className="text-xl font-bold mb-4">{user.username}</h1>
-        {isCurrentUser && (
+
+        {/* Right Section: User Profile (First) */}
+        <div className="lg:w-2/5 bg-white p-6 rounded-lg shadow">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-4">
+            <h1 className="text-xl font-bold mb-4">{user.username}</h1>
+            {isCurrentUser && (
               <Link href="/profile/edit">
                 <Button variant="outline" className="mt-2 md:mt-0">Edit Profile</Button>
               </Link>
             )}
-      </div>
-        <div className="flex flex-wrap gap-2 mb-4">
-            {/* Display user metadata like gender and location if available */}
+          </div>
+          <div className="flex flex-wrap gap-2 mb-4">
             {user.gender && (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                 {user.gender}
               </span>
             )}
-            
             {user.location && (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -272,87 +244,162 @@ export default function UserProfilePage() {
             ))}
           </div>
         </div>
-    </div>
 
-
-    {/* Section 3: Past Debates Record */}
-    <div className="w-full bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-bold mb-4">Past Debates</h2>
-        {isCurrentUser && (
-            <Link href="/debates/new">
-              <Button variant="gradient" size="sm">
-                Create New Debate
-              </Button>
-            </Link>
-          )}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="p-3 text-left">Topic</th>
-                <th className="p-3 text-left">Opponent</th>
-                <th className="p-3 text-left">Result</th>
-                <th className="p-3 text-left">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              
-            </tbody>
-          </table>
+        {/* Middle Section: Debate Statistics */}
+        <div className="lg:w-2/5 bg-white p-6 rounded-lg shadow">
+          <h2 className="text-xl font-bold mb-4">Debate Statistics</h2>
+          <div className="flex items-center">
+            <div className="relative">
+              <svg width="150" height="150" viewBox="0 0 150 150">
+                <circle 
+                  cx="75" 
+                  cy="75" 
+                  r={radius} 
+                  stroke="#a6a6a6" 
+                  strokeWidth="12" 
+                  fill="none" 
+                />
+                <circle 
+                  cx="75" 
+                  cy="75" 
+                  r={radius} 
+                  stroke="#0F0F0F" 
+                  strokeWidth="12" 
+                  fill="none" 
+                  strokeDasharray={strokeDasharray}
+                  strokeDashoffset={strokeDashoffset}
+                  transform="rotate(-90 75 75)"
+                />
+                <text 
+                  x="75" 
+                  y="70" 
+                  textAnchor="middle" 
+                  dominantBaseline="middle" 
+                  fontSize="24" 
+                  fontWeight="bold"
+                >
+                  {user.stats?.totalDebates || 0}
+                </text>
+                <text
+                  x="75"
+                  y="100"
+                  textAnchor="middle" 
+                  dominantBaseline="middle" 
+                  fontSize="16" 
+                  fontWeight="bold"
+                >
+                  Total
+                </text>
+              </svg>
+            </div>
+            <div className="ml-6">
+              <div className="flex items-center mb-2">
+                <div className="w-4 h-4 rounded-full bg-black mr-2"></div>
+                <p>Wins: {user.stats?.wins || 0}</p>
+              </div>
+              <div className="flex items-center">
+                <div className="w-4 h-4 rounded-full bg-[#a6a6a6] mr-2"></div>
+                <p>Losses: {user.stats?.losses || 0}</p>
+              </div>
+              <div className="mt-2 text-sm text-gray-500">
+                Win Rate: {user.stats && user.stats.totalDebates > 0 
+                  ? winPercentage : 0}%
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      
-      {/* Recent Debates Section */}
-      <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-gray-900">Recent Debates</h2>
-          
-          {isCurrentUser && (
-            <Link href="/debates/new">
-              <Button variant="gradient" size="sm">
-                Create New Debate
-              </Button>
-            </Link>
-          )}
-        </div>
-        
-        {debates.length > 0 ? (
-          <div className="space-y-4">
-            {debates.slice(0, 5).map((debate) => (
-              <Link key={debate.id} href={`/debates/${debate.id}`} className="block">
-                <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all">
-                  <h3 className="font-semibold text-lg text-gray-900">{debate.topic}</h3>
-                  <p className="text-sm text-gray-600 line-clamp-2 mt-1">{debate.description}</p>
-                  <div className="flex items-center mt-2 text-xs text-gray-500">
-                    <span className="font-medium">Format:</span>
-                    <span className="ml-1">{debate.rounds} rounds</span>
-                    <span className="mx-2">•</span>
-                    <span>
-                      {debate.status === 'completed' 
-                        ? 'Completed' 
-                        : debate.status === 'active' 
-                        ? 'In Progress' 
-                        : 'Pending'}
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
+
+      {/* Past Debates Section */}
+      <div className="w-full bg-white p-6 rounded-lg shadow">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Past Debate Records</h2>
+          <div className="relative mt-4 md:mt-0 w-full md:w-64">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <svg
+                className="h-5 w-5 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="indent-5 form-input pl-10 py-2 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-800 focus:ring-1 focus:ring-indigo-800"
+              placeholder="Search past debates"
+            />
           </div>
-        ) : (
-          <div className="text-center py-8 bg-gray-50 rounded-lg">
-            <p className="text-gray-500">
-              {isCurrentUser 
-                ? "You haven't participated in any debates yet." 
-                : "This user hasn't participated in any debates yet."}
-            </p>
-            {isCurrentUser && (
-              <Link href="/debates/new" className="block mt-4">
-                <Button variant="outline">Start Your First Debate</Button>
-              </Link>
+        </div>
+        <div>
+          {/* Column Headers */}
+          <div className="flex p-3 bg-gray-100 rounded-t-lg font-semibold text-gray-700">
+            <div className="flex-1 text-center">Topic</div>
+            <div className="flex-1 text-center">Opponent</div>
+            <div className="flex-1 text-center">Score</div>
+            <div className="flex-1 text-center">Result</div>
+            <div className="flex-1 text-center">Date</div>
+          </div>
+          {/* Debate Records */}
+          <div className="space-y-2 mt-2">
+            {filteredDebates.length > 0 ? (
+              filteredDebates.map((debate) => {
+                const isWinner = debate.winner === userId;
+                const score = isWinner ? 100 : 0;
+                const opponentId = debate.creatorId === userId ? debate.opponentId : debate.creatorId;
+                const opponent = opponentId ? opponents[debate.id] : null;
+                const debateDate = debate.createdAt ? new Date(debate.createdAt).toLocaleDateString() : 'N/A';
+
+                return (
+                  <Link href={`/debates/${debate.id}`} key={debate.id}>
+                    <div
+                      className="p-4 border rounded-lg shadow-sm transition-all duration-200 hover:bg-purple-50 cursor-pointer flex items-center bg-white"
+                    >
+                      <div className="flex-1 text-center">
+                        <Link href={`/debates/${debate.id}`} className="text-black hover:underline">
+                          {debate.topic}
+                        </Link>
+                        <p className="text-xs text-gray-500">
+                          {debate.rounds} rounds • {debate.status === 'completed' ? 'Completed' : 'In Progress'}
+                        </p>
+                      </div>
+                      <div className="flex-1 text-center">
+                        {opponent ? (
+                          <Link href={`/profile/${opponentId}`} className="text-black hover:underline">
+                            {opponent.username}
+                          </Link>
+                        ) : (
+                          'No Opponent'
+                        )}
+                      </div>
+                      <div className="flex-1 text-center">{score}%</div>
+                      <div className="flex-1 text-center">
+                        <span
+                          className={`inline-block px-3 py-2 text-xs font-semibold text-black rounded-md ${
+                            isWinner ? 'bg-green-500/50' : 'bg-red-500/50'
+                          }`}
+                        >
+                          {isWinner ? 'Win' : 'Loss'}
+                        </span>
+                      </div>
+                      <div className="flex-1 text-center">{debateDate}</div>
+                    </div>
+                  </Link>
+                );
+              })
+            ) : (
+              <p className="text-center text-gray-500 p-3">No past debates found.</p>
             )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
