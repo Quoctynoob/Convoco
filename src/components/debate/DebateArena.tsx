@@ -19,7 +19,7 @@ import {
   forfeitDebate,
   getDebateArguments,
 } from "@/lib/firebase/firestore";
-import { analyzeArgument } from "@/lib/gemini/api";
+import { analyzeArgument, determineDebateWinner } from "@/lib/gemini/api";
 import { onSnapshot, collection, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase/firebase";
 
