@@ -231,7 +231,7 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
         // Debate will be completed after determining winner
         updates = {
           status: DebateStatus.COMPLETED,
-          currentTurn: null, // Use null instead of undefined for Firestore
+          currentTurn: undefined, // Use undefined instead of null
         };
       } else if (side === "creator") {
         // Switch to opponent's turn
