@@ -1,9 +1,10 @@
 // src/components/debate/ArgumentInput.tsx
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Argument } from "@/types/Argument";
 import { User } from "@/types/User";
+import { DebateTimer } from "./DebateTimer";
 
 interface ArgumentInputProps {
   onSubmit: (content: string) => void;
@@ -23,12 +24,29 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
   previousUser,
 }) => {
   const [content, setContent] = useState("");
+  const [isTimerActive, setIsTimerActive] = useState(true);
+
+  // The timer duration in seconds (1 minute = 60 seconds)
+  const TIMER_DURATION = 60;
+
+  // Handle timer completion
+  const handleTimeUp = () => {
+    if (content.trim()) {
+      handleSubmit(new Event("submit") as React.FormEvent);
+    }
+  };
+
+  useEffect(() => {
+    // Reset timer active state when the component mounts or when round changes
+    setIsTimerActive(true);
+  }, [round]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (content.trim() && !loading) {
       onSubmit(content.trim());
       setContent("");
+      setIsTimerActive(false);
     }
   };
 
@@ -38,6 +56,13 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Timer */}
+      <DebateTimer
+        duration={TIMER_DURATION}
+        onTimeUp={handleTimeUp}
+        isActive={isTimerActive}
+      />
+
       {/* Previous argument display */}
       {previousArgument && previousUser && (
         <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
@@ -77,12 +102,11 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
           </div>
         </div>
       )}
-
       <div className="rounded-lg overflow-hidden border border-gray-300 focus-within:border-purple-500 focus-within:ring-1 focus-within:ring-purple-500 transition-all">
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Present your argument here. Make your case with compelling evidence and clear reasoning. Address counterpoints from your opponent when appropriate."
+          placeholder="Present your argument here. You have 1 minute to respond. Make your case with compelling evidence and clear reasoning. Address counterpoints from your opponent when appropriate."
           rows={8}
           className={`w-full p-4 focus:outline-none resize-none ${
             isOverLimit ? "border-red-300" : ""
@@ -123,7 +147,6 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
           </div>
         </div>
       </div>
-
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md border border-gray-100">
           <span className="font-medium block mb-1">

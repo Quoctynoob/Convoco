@@ -31,7 +31,6 @@ export const DebateResults: React.FC<DebateResultsProps> = ({
 
   // Only calculate scores if there was no forfeit
   const calculateScores = !wasForfeit;
-
   let creatorAvgScore = 0;
   let opponentAvgScore = 0;
 
@@ -104,7 +103,6 @@ export const DebateResults: React.FC<DebateResultsProps> = ({
                 </div>
               </div>
             </div>
-
             {wasForfeit ? (
               <div className="w-full max-w-md p-4 bg-white rounded-lg shadow-sm border border-amber-100">
                 <h4 className="text-center font-medium mb-3 text-amber-700">
@@ -139,12 +137,10 @@ export const DebateResults: React.FC<DebateResultsProps> = ({
               </div>
             )}
           </div>
-
           <div className="prose prose-sm max-w-none bg-white p-5 rounded-lg shadow-sm border border-gray-100">
             <h4 className="text-lg font-medium mb-3">
               {wasForfeit ? "Forfeit Results" : "AI Judgment"}
             </h4>
-
             {wasForfeit ? (
               <>
                 <p>
@@ -171,8 +167,8 @@ export const DebateResults: React.FC<DebateResultsProps> = ({
             ) : (
               <>
                 <p>
-                  After analyzing all arguments from both participants, Gemini
-                  has determined that {winner.username}
+                  After analyzing all arguments from both participants in this
+                  timed debate, Gemini has determined that {winner.username}
                   presented stronger arguments with better reasoning and
                   evidence on the topic:
                   <span className="font-medium"> {debate.topic}</span>.
@@ -182,12 +178,17 @@ export const DebateResults: React.FC<DebateResultsProps> = ({
                   <li>Argument quality and logical coherence</li>
                   <li>Evidence presented and factual accuracy</li>
                   <li>Responsiveness to opponent's points</li>
-                  <li>Overall persuasiveness throughout the debate</li>
+                  <li>
+                    Overall persuasiveness within the one-minute time
+                    constraints
+                  </li>
+                  <li>Efficient use of the limited time to make key points</li>
                 </ul>
                 <p>
-                  Both participants presented thoughtful arguments, but{" "}
-                  {winner.username}'s arguments were more comprehensive and
-                  supported by stronger evidence.
+                  Both participants presented thoughtful arguments within the
+                  timed format, but {winner.username}'s arguments were more
+                  comprehensive and supported by stronger evidence, even with
+                  the time constraints.
                 </p>
               </>
             )}

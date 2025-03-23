@@ -48,6 +48,11 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
   const [debateArguments, setDebateArguments] =
     useState<Argument[]>(initialArguments);
 
+  // New state for timed debate
+  const [currentTurnStartTime, setCurrentTurnStartTime] = useState<
+    number | null
+  >(null);
+
   const isCreator = user?.id === debate.creatorId;
   const isOpponent = user?.id === debate.opponentId;
   const isParticipant = isCreator || isOpponent;
@@ -65,17 +70,19 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
     }
   }, [debate.status, debate.id, router]);
 
+  // Set the turn start time when the current turn changes
+  useEffect(() => {
+    if (debate.status === DebateStatus.ACTIVE && debate.currentTurn) {
+      setCurrentTurnStartTime(Date.now());
+    }
+  }, [debate.status, debate.currentTurn]);
+
   // Real-time listener for debate arguments
   useEffect(() => {
     if (!debate.id) return;
-
     // Create a simpler query to listen for debate arguments
     const argumentsRef = collection(db, "arguments");
-    const q = query(
-      argumentsRef,
-      where("debateId", "==", debate.id)
-      // Remove the orderBy clause temporarily
-    );
+    const q = query(argumentsRef, where("debateId", "==", debate.id));
 
     // Set up real-time listener
     const unsubscribe = onSnapshot(
@@ -107,7 +114,6 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
         setError("Failed to get real-time updates for debate arguments.");
       }
     );
-
     return () => unsubscribe();
   }, [debate.id]);
 
@@ -225,10 +231,9 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
         // Debate will be completed after determining winner
         updates = {
           status: DebateStatus.COMPLETED,
-          currentTurn: undefined, // Use null instead of undefined for Firestore
+          currentTurn: null, // Use null instead of undefined for Firestore
         };
       } else if (side === "creator") {
-        
         // Switch to opponent's turn
         updates = {
           currentTurn: debate.opponentId,
@@ -242,9 +247,15 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
       }
       // Update debate status
       await updateDebate(debate.id, updates);
+
+      // Reset turn start time
+      setCurrentTurnStartTime(null);
+
+      return true;
     } catch (e) {
       setError("Failed to submit argument. Please try again.");
       console.error(e);
+      return false;
     } finally {
       setLoading(false);
     }
@@ -277,9 +288,7 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 shadow-sm">
             <div className="flex items-center mb-2">
               <div className="h-3 w-3 rounded-full bg-blue-400 mr-2"></div>
-              <h3 className="text-lg font-medium text-blue-800">
-                In Lobby
-              </h3>
+              <h3 className="text-lg font-medium text-blue-800">In Lobby</h3>
             </div>
             <p className="text-sm text-blue-700">
               Redirecting to the debate lobby...
@@ -301,7 +310,7 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
             <div className="flex justify-between items-center">
               <p className="text-sm text-green-700">
                 {isMyTurn
-                  ? "It's your turn to present your argument."
+                  ? "It's your turn to present your argument (1 minute time limit)."
                   : `Waiting for ${
                       debate.currentTurn === creator.id
                         ? creator.username
@@ -457,7 +466,8 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
                 Your Turn - Round {debate.currentRound}
               </h3>
               <p className="text-sm text-gray-600 mt-1">
-                Present your argument with clear reasoning and evidence.
+                You have 1 minute to present your argument with clear reasoning
+                and evidence.
               </p>
             </div>
             <div className="p-4">
@@ -503,6 +513,9 @@ export const DebateArena: React.FC<DebateArenaProps> = ({
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
             Creator Position:{" "}
             {debate.creatorSide === "affirmative" ? "Affirmative" : "Negative"}
+          </span>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+            Timed Debate: 1 minute per turn
           </span>
         </div>
       </div>
