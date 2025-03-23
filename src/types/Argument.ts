@@ -17,13 +17,12 @@ export interface FactCheck {
 }
 
 export interface AIAnalysis {
-  id: string;  // This is required by TypeScript
+  id: string;
   argumentId: string;
-  userId: string;
-  round: number;
+  debateId: string;
+  score: number;
   content: string;
   factCheck: FactCheck[];
-  score: number;
   suggestedCounterpoints?: string[];
   createdAt: number;
 }

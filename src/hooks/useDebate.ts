@@ -221,96 +221,100 @@ export const useDebate = (debateId: string) => {
     }
   };
 
-  const submitArgument = async (
-    content: string,
-    userId: string,
-    side: "creator" | "opponent",
-    creator: User,
-    opponent: User | null
-  ) => {
-    if (!debate || !opponent) return false;
-    try {
-      if (debate.status !== DebateStatus.ACTIVE) {
-        setError("This debate is not active");
-        return false;
+ // Replace the submitArgument function in useDebate.ts
+
+const submitArgument = async (
+  content: string,
+  userId: string,
+  side: "creator" | "opponent",
+  creator: User,
+  opponent: User | null
+) => {
+  if (!debate || !opponent) return false;
+  try {
+    if (debate.status !== DebateStatus.ACTIVE) {
+      setError("This debate is not active");
+      return false;
+    }
+    if (debate.currentTurn !== userId) {
+      setError("It is not your turn");
+      return false;
+    }
+    const currentRound = debate.currentRound;
+    
+    // Add the argument
+    const newArgument: Omit<Argument, "id" | "createdAt"> = {
+      debateId,
+      userId,
+      content,
+      round: currentRound,
+      side,
+    };
+    const argumentId = await addArgument(newArgument);
+    const argument = {
+      id: argumentId,
+      ...newArgument,
+      createdAt: Date.now(),
+    };
+    
+    // Get AI analysis
+    const previousArgs = debateArguments.filter(
+      (arg) =>
+        arg.round < currentRound ||
+        (arg.round === currentRound && arg.userId !== userId)
+    );
+    const analysis = await analyzeArgument(
+      debate,
+      argument,
+      previousArgs,
+      creator,
+      opponent
+    );
+    
+    // Determine next turn or complete debate
+    let updates: Partial<Debate> = {};
+    if (side === "opponent" && currentRound >= debate.rounds) {
+      // Debate is complete, determine winner
+      const allArguments = [...debateArguments, argument];
+      const analysisArray: AIAnalysis[] = [];
+      if (analysis) {
+        analysisArray.push(analysis);
       }
-      if (debate.currentTurn !== userId) {
-        setError("It is not your turn");
-        return false;
-      }
-      const currentRound = debate.currentRound;
-      // Add the argument
-      const newArgument: Omit<Argument, "id" | "createdAt"> = {
-        debateId,
-        userId,
-        content,
-        round: currentRound,
-        side,
-      };
-      const argumentId = await addArgument(newArgument);
-      const argument = {
-        id: argumentId,
-        ...newArgument,
-        createdAt: Date.now(),
-      };
-      // Get AI analysis
-      const previousArgs = debateArguments.filter(
-        (arg) =>
-          arg.round < currentRound ||
-          (arg.round === currentRound && arg.userId !== userId)
-      );
-      const analysis = await analyzeArgument(
+      const result = await determineDebateWinner(
         debate,
-        argument,
-        previousArgs,
+        allArguments,
+        analysisArray,
         creator,
         opponent
       );
-      // Determine next turn or complete debate
-      let updates: Partial<Debate> = {};
-      if (side === "opponent" && currentRound >= debate.rounds) {
-        // Debate is complete, determine winner
-        const allArguments = [...debateArguments, argument];
-        // Fixed part - Ensure aiAnalysis is treated as an array of AIAnalysis objects
-        // If debate.aiAnalysis is an array of string IDs, we need to handle that differently
-        const analysisArray: AIAnalysis[] = [];
-        // Handle the case where aiAnalysis might not exist or be empty
-        if (analysis) {
-          analysisArray.push(analysis);
-        }
-        const result = await determineDebateWinner(
-          debate,
-          allArguments,
-          analysisArray,
-          creator,
-          opponent
-        );
-        updates = {
-          status: DebateStatus.COMPLETED,
-          winner: result.winnerId,
-          currentTurn: undefined,
-        };
-      } else if (side === "creator") {
-        // Switch to opponent's turn
-        updates = {
-          currentTurn: debate.opponentId,
-        };
-      } else {
-        // Switch back to creator's turn and increment round
-        updates = {
-          currentRound: currentRound + 1,
-          currentTurn: debate.creatorId,
-        };
-      }
-      await updateDebate(debateId, updates);
-      return true;
-    } catch (e) {
-      const errorMessage =
-        e instanceof Error ? e.message : "Unknown error submitting argument";
-      setError(errorMessage);
-      return false;
+      
+      // FIXED: Don't include currentTurn in the updates object
+      updates = {
+        status: DebateStatus.COMPLETED,
+        winner: result.winnerId,
+      };
+    } else if (side === "creator") {
+      // Switch to opponent's turn
+      updates = {
+        currentTurn: debate.opponentId,
+      };
+    } else {
+      // Switch back to creator's turn and increment round
+      updates = {
+        currentRound: currentRound + 1,
+        currentTurn: debate.creatorId,
+      };
     }
-  };
+    await updateDebate(debateId, updates);
+    return true;
+  } catch (e) {
+    console.error("Error submitting argument:", e);
+    const errorMessage =
+      e instanceof Error ? e.message : "Unknown error submitting argument";
+    setError(errorMessage);
+    return false;
+  }
+};
 
   return {
     debate,
