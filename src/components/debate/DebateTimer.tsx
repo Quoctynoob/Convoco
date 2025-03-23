@@ -1,6 +1,6 @@
 // src/components/debate/DebateTimer.tsx
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 interface DebateTimerProps {
   duration: number; // Duration in seconds
@@ -15,29 +15,55 @@ export const DebateTimer: React.FC<DebateTimerProps> = ({
 }) => {
   const [timeLeft, setTimeLeft] = useState(duration);
   const [isPaused, setIsPaused] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTickTimeRef = useRef<number | null>(null);
 
   // Reset timer when it becomes active
   useEffect(() => {
     if (isActive) {
       setTimeLeft(duration);
       setIsPaused(false);
+      lastTickTimeRef.current = Date.now();
     }
   }, [isActive, duration]);
 
-  // Timer countdown logic
+  // Timer countdown logic using requestAnimationFrame for more consistent timing
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let animationFrameId: number;
 
-    if (isActive && !isPaused && timeLeft > 0) {
-      timer = setTimeout(() => {
-        setTimeLeft((prevTime) => prevTime - 1);
-      }, 1000);
-    } else if (isActive && timeLeft === 0) {
-      onTimeUp();
-    }
+    const tick = () => {
+      if (isActive && !isPaused && timeLeft > 0) {
+        const now = Date.now();
+
+        // If this is the first tick or it's been at least 1 second since the last tick
+        if (
+          lastTickTimeRef.current === null ||
+          now - lastTickTimeRef.current >= 1000
+        ) {
+          setTimeLeft((prevTime) => {
+            const newTime = prevTime - 1;
+            // If the timer has reached zero, call the onTimeUp callback
+            if (newTime === 0) {
+              setTimeout(() => onTimeUp(), 0);
+            }
+            return newTime;
+          });
+          lastTickTimeRef.current = now;
+        }
+
+        animationFrameId = requestAnimationFrame(tick);
+      } else if (isActive && timeLeft === 0) {
+        onTimeUp();
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(tick);
 
     return () => {
-      if (timer) clearTimeout(timer);
+      cancelAnimationFrame(animationFrameId);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
     };
   }, [timeLeft, isActive, isPaused, onTimeUp]);
 
