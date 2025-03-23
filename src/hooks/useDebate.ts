@@ -17,7 +17,6 @@ import {
 import {
   analyzeArgument,
   determineDebateWinner,
-  suggestDebateTopics,
 } from "@/lib/gemini/api";
 import { Debate, DebateStatus } from "@/types/Debate";
 import { Argument, AIAnalysis } from "@/types/Argument";
