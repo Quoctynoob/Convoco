@@ -172,91 +172,97 @@ export default function UserProfilePage() {
   const strokeDashoffset = circumference - (winPercentage / 100) * circumference;
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      {/* Top Section: Debater Image, Statistics, and Profile */}
-      <div className="flex flex-col lg:flex-row gap-6 mb-8">
-        {/* Left Section: Debater Image and Buttons (Conditional) */}
-        <div className="lg:w-1/4 flex flex-col justify-center items-center min-h-[300px]">
-          <div>
-            <Image
-              src="/debater.jpg"
-              alt="Debater"
-              width={isCurrentUser ? 200 : 300}  // Larger for others' profiles
-              height={isCurrentUser ? 200 : 300} // Larger for others' profiles
-              className="rounded-lg"
-            />
-          </div>
-          {isCurrentUser && (
-            <div className="flex flex-col gap-4 w-full mt-6">
-              <Button
-                variant="default"
-                size="lg"
-                className="w-full bg-black hover:bg-gray-800 text-white"
-                onClick={() => router.push("/debates/new")}
-              >
-                Debate!
-              </Button>
+    <div className="max-w-7xl mx-auto p-10">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">User Profile</h1>
+      </div>
+        
+            {/* Top Section: Debater Image, Statistics, and Profile */}
+      <div className="flex flex-col md:flex-row gap-6 mb-8">
+        <div className="w-full md:w-4/7 bg-white p-6 rounded-lg shadow flex">
+          {/* Content container */}
+          <div className="flex flex-col w-full">
+            <div className="flex flex-col md:flex-row justify-start items-center mb-4">
+              <h1 className="text-2xl font-bold mr-4">{user.username}</h1>
+              {isCurrentUser && (
+                <Link href="/profile/edit">
+                  <Image
+                    src="/edit-icon.png"
+                    alt="pencil"
+                    width={20}  // Icon size
+                    height={20} // Icon size
+                  />
+                </Link>
+              )}
             </div>
-          )}
+
+            
+            <div className="flex flex-wrap gap-2 mb-4">
+              {user.gender && (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-black text-white">
+                  {user.gender}
+                </span>
+              )}
+              {user.location && (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-black text-white">
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  {user.location}
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-col lg:flex-row gap-6 mb-2 w-full">
+                {/* Image container */}
+                <div className="w-full lg:w-1/3 pr-6 flex justify-center items-center">
+                  <Image
+                    src="/debater.jpg"
+                    alt="Debater"
+                    width={300}  // Larger for others' profiles
+                    height={300} // Larger for others' profiles
+                  />
+                </div>
+
+              {/* Content container */}
+              <div className="w-full lg:w-2/3">
+                {user.bio ? (
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 mb-4">
+                    <h2 className="text-sm font-semibold text-gray-700 mb-2">Bio</h2>
+                    <p className="text-gray-600">{user.bio}</p>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 mb-4 text-center italic text-gray-500">
+                    {isCurrentUser ? 'Add a bio to tell others about yourself' : 'This user has not added a bio yet'}
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                  {user.debateTopics.map((topic, index) => (
+                    <span key={index} className="bg-[#a7ccfa] text-black px-3 py-1 rounded-full text-sm">
+                      {topic}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Right Section: User Profile (First) */}
-        <div className="lg:w-2/5 bg-white p-6 rounded-lg shadow">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-4">
-            <h1 className="text-xl font-bold mb-4">{user.username}</h1>
-            {isCurrentUser && (
-              <Link href="/profile/edit">
-                <Button variant="outline" className="mt-2 md:mt-0">Edit Profile</Button>
-              </Link>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {user.gender && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                {user.gender}
-              </span>
-            )}
-            {user.location && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                {user.location}
-              </span>
-            )}
-          </div>
-          {user.bio ? (
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 mb-4">
-              <h2 className="text-sm font-semibold text-gray-700 mb-2">Bio</h2>
-              <p className="text-gray-600">{user.bio}</p>
-            </div>
-          ) : (
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 mb-4 text-center italic text-gray-500">
-              {isCurrentUser ? 'Add a bio to tell others about yourself' : 'This user has not added a bio yet'}
-            </div>
-          )}
-          <div className="flex flex-wrap gap-2">
-            {user.debateTopics.map((topic, index) => (
-              <span key={index} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
-                {topic}
-              </span>
-            ))}
-          </div>
-        </div>
 
-        {/* Middle Section: Debate Statistics */}
-        <div className="lg:w-2/5 bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-bold mb-4">Debate Statistics</h2>
+      {/* Middle Section: Debate Statistics */}
+      <div className="w-full md:w-1/2 bg-white p-6 rounded-lg shadow">
+        <h2 className="text-xl font-bold mb-4">Debate Statistics</h2>
           <div className="flex items-center">
             <div className="relative">
-              <svg width="150" height="150" viewBox="0 0 150 150">
+              <svg width="180" height="180" viewBox="0 0 150 150">
                 <circle 
                   cx="75" 
                   cy="75" 
                   r={radius} 
                   stroke="#a6a6a6" 
-                  strokeWidth="12" 
+                  strokeWidth="14" 
                   fill="none" 
                 />
                 <circle 
@@ -264,7 +270,8 @@ export default function UserProfilePage() {
                   cy="75" 
                   r={radius} 
                   stroke="#0F0F0F" 
-                  strokeWidth="12" 
+                  strokeLinecap="round"
+                  strokeWidth="14" 
                   fill="none" 
                   strokeDasharray={strokeDasharray}
                   strokeDashoffset={strokeDashoffset}
@@ -334,7 +341,7 @@ export default function UserProfilePage() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="indent-5 form-input pl-10 py-2 w-full rounded-md border-gray-300 shadow-sm"
+              className="indent-6 form-input pl-10 py-2 w-full rounded-md border-gray-300 shadow-sm"
               placeholder="Search past debates"
             />
           </div>
