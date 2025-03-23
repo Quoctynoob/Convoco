@@ -1,37 +1,38 @@
 // src/utils/speechToText.ts
 
-class SpeechToTextService {
-  private recognition: any = null;
-  private isListening: boolean = false;
-  private interimTranscript: string = '';
-  private finalTranscript: string = '';
-  private onResultCallback?: (result: { finalTranscript: string, interimTranscript: string }) => void;
-  private onEndCallback?: () => void;
-  private onErrorCallback?: (error: any) => void;
+type SpeechRecognitionResult = {
+  finalTranscript: string;
+  interimTranscript: string;
+};
 
-  constructor() {
-    // Check if browser supports SpeechRecognition
-    if (typeof window !== 'undefined') {
-      // Use any type here to avoid TypeScript errors
-      const SpeechRecognition = (window as any).SpeechRecognition || 
-                                (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        this.recognition = new SpeechRecognition();
-        this.configureRecognition();
-      }
-    }
+class SpeechToTextService {
+  recognition: SpeechRecognition | null = null;
+  isListening: boolean = false;
+  finalTranscript: string = '';
+  interimTranscript: string = '';
+  resultCallback: ((result: SpeechRecognitionResult) => void) | null = null;
+  endCallback: (() => void) | null = null;
+  errorCallback: ((error: any) => void) | null = null;
+
+  isSupported(): boolean {
+    return 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
   }
 
-  private configureRecognition() {
-    if (!this.recognition) return;
+  setupRecognition() {
+    if (!this.isSupported()) return false;
 
+    // Initialize the recognition object
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    this.recognition = new SpeechRecognition();
+    
     // Configure recognition
-    this.recognition.continuous = true;
+    this.recognition.continuous = false;  // Changed to false to avoid repetition
     this.recognition.interimResults = true;
-    this.recognition.lang = 'en-US'; // Default language
-
-    // Set up event handlers
-    this.recognition.onresult = (event: any) => {
+    this.recognition.maxAlternatives = 1;
+    this.recognition.lang = 'en-US';  // Default language
+    
+    // Handle results
+    this.recognition.onresult = (event) => {
       this.interimTranscript = '';
       
       for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -42,89 +43,79 @@ class SpeechToTextService {
         }
       }
       
-      if (this.onResultCallback) {
-        this.onResultCallback({
+      if (this.resultCallback) {
+        this.resultCallback({
           finalTranscript: this.finalTranscript,
           interimTranscript: this.interimTranscript
         });
       }
     };
-
+    
+    // Handle end of speech
     this.recognition.onend = () => {
       this.isListening = false;
-      if (this.onEndCallback) this.onEndCallback();
+      if (this.endCallback) this.endCallback();
     };
-
-    this.recognition.onerror = (event: any) => {
-      console.error('Speech recognition error', event);
-      if (this.onErrorCallback) this.onErrorCallback(event);
+    
+    // Handle errors
+    this.recognition.onerror = (event) => {
+      this.isListening = false;
+      if (this.errorCallback) this.errorCallback(event.error);
     };
+    
+    return true;
   }
 
-  public start(): boolean {
-    if (!this.recognition) {
-      console.error('Speech recognition not supported in this browser');
-      return false;
-    }
-
-    if (this.isListening) return true;
-
-    try {
-      this.recognition.start();
-      this.isListening = true;
-      this.finalTranscript = '';
-      this.interimTranscript = '';
-      return true;
-    } catch (error) {
-      console.error('Error starting speech recognition:', error);
-      return false;
-    }
-  }
-
-  public stop(): void {
-    if (!this.recognition || !this.isListening) return;
+  start(): boolean {
+    if (this.isListening) return false;
+    if (!this.recognition && !this.setupRecognition()) return false;
     
     try {
-      this.recognition.stop();
-      this.isListening = false;
-    } catch (error) {
-      console.error('Error stopping speech recognition:', error);
+      // Reset transcripts before starting
+      this.finalTranscript = '';
+      this.interimTranscript = '';
+      
+      this.recognition!.start();
+      this.isListening = true;
+      return true;
+    } catch (e) {
+      console.error('Speech recognition error:', e);
+      return false;
     }
   }
 
-  public setLanguage(lang: string): void {
-    if (!this.recognition) return;
-    this.recognition.lang = lang;
+  stop(): void {
+    if (!this.isListening || !this.recognition) return;
+    this.recognition.stop();
+    this.isListening = false;
   }
 
-  public clear(): void {
-    this.finalTranscript = '';
-    this.interimTranscript = '';
-    if (this.onResultCallback) {
-      this.onResultCallback({
-        finalTranscript: '',
-        interimTranscript: ''
-      });
+  onResult(callback: (result: SpeechRecognitionResult) => void): void {
+    this.resultCallback = callback;
+  }
+
+  onEnd(callback: () => void): void {
+    this.endCallback = callback;
+  }
+
+  onError(callback: (error: any) => void): void {
+    this.errorCallback = callback;
+  }
+
+  setLanguage(language: string): void {
+    if (this.recognition) {
+      this.recognition.lang = language;
     }
-  }
-
-  public onResult(callback: (result: { finalTranscript: string, interimTranscript: string }) => void): void {
-    this.onResultCallback = callback;
-  }
-
-  public onEnd(callback: () => void): void {
-    this.onEndCallback = callback;
-  }
-
-  public onError(callback: (error: any) => void): void {
-    this.onErrorCallback = callback;
-  }
-
-  public isSupported(): boolean {
-    return this.recognition !== null;
   }
 }
 
-// Export singleton instance
-const speechToText = typeof window !== 'undefined' ? new SpeechToTextService() : null;
+// Add these types to make TypeScript happy
+declare global {
+  interface Window {
+    SpeechRecognition: typeof SpeechRecognition;
+    webkitSpeechRecognition: typeof SpeechRecognition;
+  }
+}
+
+const speechToText = new SpeechToTextService();
 export default speechToText;

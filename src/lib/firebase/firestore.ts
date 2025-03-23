@@ -10,10 +10,6 @@ import {
   query,
   where,
   orderBy,
-  serverTimestamp,
-  Timestamp,
-  DocumentReference,
-  DocumentData,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { Debate, DebateStatus } from "@/types/Debate";

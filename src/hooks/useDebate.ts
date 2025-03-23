@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  getDebateById,
   getDebateArguments,
   getUserDebates,
   getOpenDebates,
@@ -11,7 +10,6 @@ import {
   updateDebate,
   addArgument,
   markUserReady,
-  resetReadyState,
   getDebateAnalyses,
 } from "@/lib/firebase/firestore";
 import {

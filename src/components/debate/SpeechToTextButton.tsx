@@ -14,7 +14,7 @@ interface SpeechToTextButtonProps {
 const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
   onSpeechResult,
   onSpeechError,
-  buttonText = "Speak",
+  buttonText = "Browser Speech",
   listeningText = "Listening...",
   className = ""
 }) => {
@@ -29,8 +29,9 @@ const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
       
       // Set up event handlers
       speechToText.onResult(({ finalTranscript, interimTranscript }) => {
-        setTranscript(finalTranscript || interimTranscript);
+        // Only update for final transcripts to avoid repetition
         if (finalTranscript) {
+          setTranscript(finalTranscript);
           onSpeechResult(finalTranscript);
         }
       });
@@ -41,6 +42,7 @@ const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
       
       speechToText.onError((error) => {
         setIsListening(false);
+        console.error("Speech recognition error:", error);
         if (onSpeechError) onSpeechError(error);
       });
     }

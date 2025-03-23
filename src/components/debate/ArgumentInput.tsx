@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Argument } from "@/types/Argument";
 import { User } from "@/types/User";
 import SpeechToTextButton from "./SpeechToTextButton";
+import GoogleSpeechToTextButton from "./GoogleSpeechToTextButton";
 
 interface ArgumentInputProps {
   onSubmit: (content: string) => void;
@@ -83,6 +84,11 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
       const newContent = prev ? `${prev} ${text}` : text;
       return newContent.slice(0, maxLength);
     });
+    
+    // Focus the textarea after adding speech
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
   };
 
   const remainingChars = maxLength - content.length;
@@ -218,11 +224,16 @@ export const ArgumentInput: React.FC<ArgumentInputProps> = ({
         </div>
         
         <div className="flex flex-col gap-2">
-          {/* Speech-to-text button */}
-          <SpeechToTextButton 
-            onSpeechResult={handleSpeechResult}
-            className="self-end"
-          />
+          {/* Speech-to-text buttons */}
+          <div className="flex space-x-2 self-end">
+            <SpeechToTextButton 
+              onSpeechResult={handleSpeechResult}
+            />
+            
+            <GoogleSpeechToTextButton
+              onSpeechResult={handleSpeechResult}
+            />
+          </div>
           
           <Button
             type="submit"
